@@ -23,9 +23,10 @@ export function OutboundPanel() {
   const [loading, setLoading] = useState(false);
 
   async function call() {
-    setLoading(true);
-    setError(null);
+    // Clear any prior state immediately so the click feels real.
     setResult(null);
+    setError(null);
+    setLoading(true);
     try {
       const response = await fetch("/api/camdx/outbound", { method: "POST" });
       const data = (await response.json()) as XRoadResult | { error: string };
@@ -74,11 +75,25 @@ export function OutboundPanel() {
               <span className="block h-2.5 w-2.5 animate-pulse rounded-full bg-ochre" />
               Calling…
             </>
+          ) : result ? (
+            "Run the call again"
           ) : (
             "Execute X-Road call"
           )}
         </button>
       </div>
+
+      {loading && (
+        <div className="mt-6 border-l-2 border-ochre bg-paper-tint p-4 text-[13px] leading-[1.6] text-ink-soft">
+          <span className="label" style={{ color: "var(--color-ochre)" }}>
+            Working
+          </span>
+          <p className="mt-1 text-ink">
+            Opening an X-Road REST gateway request to the public Playground.
+            Usually completes in 1–2 seconds.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div

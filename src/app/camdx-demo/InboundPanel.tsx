@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   attestationUrnToObjectId,
   didToObjectId,
@@ -63,13 +63,18 @@ type StageState = "ok" | "error" | "skipped";
 export function InboundPanel() {
   const [record, setRecord] = useState<InboundRecord | null>(null);
   const [status, setStatus] = useState<
-    "idle" | "loading" | "simulating" | "empty" | "error"
+    "idle" | "loading" | "simulating" | "error"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  const resultRef = useRef<HTMLOListElement | null>(null);
 
   const simulate = useCallback(async () => {
-    setStatus("simulating");
+    // Clear any prior state immediately so the click feels real, even on
+    // warm-lambda Vercel where the previous run might still be in module
+    // memory.
+    setRecord(null);
     setError(null);
+    setStatus("simulating");
     try {
       const response = await fetch("/api/camdx/simulate", { method: "POST" });
       const data = (await response.json()) as InboundRecord | { error: string };
@@ -80,6 +85,14 @@ export function InboundPanel() {
       }
       setRecord(data);
       setStatus("idle");
+      // Scroll the timeline into view so the user is taken to the result
+      // rather than being left staring at the (now-empty) button area.
+      requestAnimationFrame(() => {
+        resultRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
       setStatus("error");
@@ -93,7 +106,7 @@ export function InboundPanel() {
       const response = await fetch("/api/camdx/inbound");
       if (response.status === 404) {
         setRecord(null);
-        setStatus("empty");
+        setStatus("idle");
         return;
       }
       if (!response.ok) {
@@ -110,9 +123,10 @@ export function InboundPanel() {
     }
   }, []);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // No on-mount auto-fetch. On Vercel warm lambdas the inbound cache from a
+  // previous visitor's run would otherwise leak into the new page load, making
+  // it impossible to tell that a click has done anything. The empty initial
+  // state makes the "click Simulate" call-to-action unambiguous.
 
   const busy = status === "loading" || status === "simulating";
 
@@ -158,11 +172,26 @@ export function InboundPanel() {
               <span className="block h-2.5 w-2.5 animate-pulse rounded-full bg-ochre" />
               Simulating delivery…
             </>
+          ) : record ? (
+            "Run a fresh simulation"
           ) : (
             "Simulate CamDX delivery"
           )}
         </button>
       </div>
+
+      {status === "simulating" && (
+        <div className="mt-6 border-l-2 border-ochre bg-paper-tint p-4 text-[13px] leading-[1.6] text-ink-soft">
+          <span className="label" style={{ color: "var(--color-ochre)" }}>
+            Working
+          </span>
+          <p className="mt-1 text-ink">
+            Building the X-Road envelope, translating, then sequencing four live
+            calls to Kitsune (notify → activity-log → verifiable-credential →
+            attestation). Usually completes in 3–6 seconds.
+          </p>
+        </div>
+      )}
 
       <details className="mt-5 max-w-[62ch] text-[12px] leading-[1.6] text-ink-soft">
         <summary className="cursor-pointer select-none text-ink-faint hover:text-ink">
@@ -188,10 +217,11 @@ export function InboundPanel() {
         </div>
       </details>
 
-      {status === "empty" && !record && (
-        <p className="mt-8 max-w-[50ch] text-[13px] italic text-ink-soft">
-          No inbound envelope received yet. Click <em>Simulate CamDX delivery</em> to drive the full
-          pipeline end-to-end.
+      {!record && status !== "simulating" && !error && (
+        <p className="mt-8 max-w-[60ch] text-[13px] italic text-ink-soft">
+          Click <em>Simulate CamDX delivery</em> above to drive the pipeline
+          end-to-end and see the six-stage timeline populate with real
+          cryptographic artefacts.
         </p>
       )}
 
@@ -208,7 +238,7 @@ export function InboundPanel() {
       )}
 
       {record && (
-        <ol className="timeline mt-10">
+        <ol className="timeline mt-10" ref={resultRef}>
           <Stage
             num={1}
             title="Envelope received"
@@ -344,7 +374,14 @@ function Stage({
   last?: boolean;
 }) {
   return (
-    <li className={`stage ${last ? "stage-last" : ""}`}>
+    <li
+      className={`stage ${last ? "stage-last" : ""}`}
+      style={{
+        opacity: 0,
+        animation: `stage-in 420ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards`,
+        animationDelay: `${num * 90}ms`,
+      }}
+    >
       <div className="stage-numeral" data-state={state}>
         {String(num).padStart(2, "0")}
       </div>
@@ -397,6 +434,13 @@ const stageStyles = `
   padding: 0 0.3rem;
 }
 .stage > .stage-content { min-width: 0; }
+@keyframes stage-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage { animation: none !important; opacity: 1 !important; }
+}
 `;
 
 function stageState(
