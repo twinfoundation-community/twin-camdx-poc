@@ -1,0 +1,40 @@
+{
+  "name": "camdx-poc",
+  "author": "Twin Team",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check:types": "tsc --noEmit --pretty",
+    "simulator": "node tools/camdx-simulator.mjs"
+  },
+  "dependencies": {
+    "@twin.org/api-models": "^0.0.3-next.34",
+    "@twin.org/attestation-rest-client": "^0.0.3-next.10",
+    "@twin.org/data-space-connector-rest-client": "^0.0.3-next.14",
+    "@twin.org/identity-rest-client": "^0.0.3-next.25",
+    "next": "16.0.10",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^16.0.3",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.4",
+    "@typescript-eslint/eslint-plugin": "^8.48.0",
+    "@typescript-eslint/parser": "^8.48.0",
+    "eslint": "^9.39.1",
+    "postcss": "^8.5.6",
+    "postcss-load-config": "^6.0.1",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
+  }
+}
