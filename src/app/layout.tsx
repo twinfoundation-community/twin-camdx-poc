@@ -25,7 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "CamDX ↔ TWIN Connector — Technical Brief",
   description:
-    "Bidirectional adaptor demonstrating interoperability between Cambodia's CamDX (X-Road v7.7) data exchange layer and a TWIN node. Prepared for the Ministry of Commerce technical feasibility briefing.",
+    "Bidirectional adaptor demonstrating that a Cambodian customs consignment delivered over CamDX (X-Road v7.7) can be ingested by a TWIN node, verifiably credentialed, and anchored on-chain — using the same supply-chain models that power TWIN's existing UK pilot. Prepared for the Ministry of Commerce technical feasibility briefing.",
 };
 
 export default function RootLayout({

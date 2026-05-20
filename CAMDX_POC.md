@@ -12,6 +12,7 @@ Ministry of Commerce briefing.
 | The adaptor can be addressed by a CamDX-side caller using the X-Road envelope      | Inbound handler accepts an X-Road envelope from the simulator and produces a typed W3C activity      |
 | Records arriving from CamDX can be expressed in TWIN's canonical ingestion shape   | The translated payload is a valid Activity Streams `Add` activity ready for `POST /dataspace/notify` on Kitsune |
 | The data-space-connector's `/dataspace/notify` is the right TWIN-side ingestion point | Confirmed against `data-space-connector/packages/data-space-connector-service/src/dataSpaceConnectorRoutes.ts` (route accepts any `IActivity`, `object` slot is open) and confirmed live on Kitsune by Rodrigo (`TWIN_DATASPACE_ENABLED=true`, `TWIN_DATASPACE_DATA_PLANE_PATH=dataspace/entities`) |
+| The Consignment activity type is the canonical TWIN supply-chain payload | Confirmed against `data-space-connector/packages/data-space-connector-test-app/src/testDataSpaceConnectorApp.ts` — its `activitiesHandled()` filter is `objectType: https://vocabulary.uncefact.org/Consignment`. Same model powers TWIN's UK supply-chain pilot on `supply-chain.staging.twinnodes.com` |
 
 ## What this does NOT prove
 
@@ -20,7 +21,8 @@ Ministry of Commerce briefing.
 | Real subsystem registration on the Cambodian SS         | No registered subsystem exists for "TWIN" on any X-Road central server; we use the Playground's `TestClient` | Procedural — register a TWIN subsystem with the Cambodian SS once an engagement begins                |
 | Real SS-to-SS mTLS between consumer and provider SSes   | The simulator stands in for a real Cambodian security server                                            | Spin up a real CamDX Docker stack (out of scope; ~4-5 additional engineering days)                          |
 | Entity query via `GET /dataspace/entities`              | Requires `consumerPid` — a process identifier issued by `POST /dataspace-control-plane/transfers/request` per the Dataspace Protocol. That's a multi-step negotiation (request → start → complete) just to read an entity back. The activity log URN already proves ingestion, so we skip this dance for the demo | Implement the Dataspace Protocol consumer flow if MoC asks (Phase 3) |
-| A canonical Cambodian MoH data schema                   | The vaccination record shape is illustrative, not derived from a published Cambodian government contract | Align with a real MoH schema once MoC provides one or once we engage their technical advisor              |
+| Active task-lifecycle processing on stage 04            | The Consignment activity is logged, queryable, and credentialed — but `pendingTasks/runningTasks/finalizedTasks` counts stay at zero until a Data Space Connector App is registered as a Kitsune extension and subscribes to Consignment activities. Registration is node-operator-only by design (`registerApp` is intentionally `NotSupportedError` over both REST and socket clients) | Ask the node operator (Rodrigo) to enable `@twin.org/data-space-connector-test-app` as a TWIN extension — ~5-min config change, no code |
+| A Cambodian-published customs schema                    | The illustrative consignment is in the UN/CEFACT D23B vocabulary — the canonical TWIN supply-chain shape, not a Cambodian government schema | Align with whatever schema the Ministry of Commerce publishes for CamDX customs services once we engage |
 
 ## Architecture
 
@@ -71,19 +73,13 @@ Click **Call X-Road service** in the left panel. The UI shows:
 
 ### Inbound demo
 
-In another shell:
+Click **Simulate CamDX delivery** in the right panel (or, for local terminal-driven testing, `npm run simulator` in another shell). Either path POSTs an X-Road REST envelope carrying a UN/CEFACT D23B Consignment — a Cambodian customs export declaration (milled rice → Singapore, HS 1006.30) — to `/api/camdx/inbound`. The six-stage timeline populates with the result:
 
-```sh
-npm run simulator
-```
-
-The simulator builds a credible X-Road envelope and POSTs an illustrative citizen vaccination record to `/api/camdx/inbound`. Click **Refresh** on the right panel of the UI to see a six-stage timeline, each card colour-coded by status:
-
-1. **Envelope received** — X-Road headers parsed (`X-Road-Client`, `X-Road-Service`, `X-Road-Id`, `X-Road-UserId`)
-2. **Translated to W3C Activity Streams** — wrapped as an `Add` activity, with `@type` mirrored to `type` so the Activity Streams validator accepts it
+1. **Envelope received** — X-Road headers parsed (`X-Road-Client: CAMDX/GOV/MOC/CUSTOMS-EXPORT`, `X-Road-Service`, `X-Road-Id`, `X-Road-UserId`)
+2. **Translated to W3C Activity Streams** — wrapped as an `Add` activity with `objectType: https://vocabulary.uncefact.org/Consignment` (the canonical type the TWIN supply-chain pipeline already handles)
 3. **Forwarded to Kitsune `/dataspace/notify`** — `POST` returns 201 Created with an `urn:x-activity-log:...` URN in the Location header
-4. **Activity log status** — `GET /dataspace/activity-logs/:id` returns the ingestion record (generator DID + task counts)
-5. **Signed as W3C Verifiable Credential** — first call ensures an `assertionMethod` key (`camdx-demo`) exists on the admin DID via `POST /identity/<DID>/verification-method`, then `POST /identity/<DID>/verifiable-credential/<vmId>` issues a real VC with `DataIntegrityProof` (`eddsa-jcs-2022` cryptosuite) signed by the new key — returned as both a JSON-LD document and a JWT
+4. **Ingestion confirmed** — `GET /dataspace/activity-logs/:id` returns the ingestion record. Task counters will show non-zero values once a Data Space Connector App (e.g. `@twin.org/data-space-connector-test-app`) is registered as a Kitsune extension and subscribes to Consignment activities
+5. **Signed as W3C Verifiable Credential** — first call ensures an `assertionMethod` key (`camdx-demo`) exists on the admin DID via `POST /identity/<DID>/verification-method`, then `POST /identity/<DID>/verifiable-credential/<vmId>` issues a real VC with `DataIntegrityProof` (`eddsa-jcs-2022` cryptosuite) — returned as both a JSON-LD document and a JWT
 6. **Anchored as attestation** — `POST /attestation` returns 201 Created with an `attestation:nft:...` URN; the record is now anchored as an NFT on IOTA testnet via `@twin.org/nft-connector-iota`
 
 ## Demo script (5 minutes, minister briefing)

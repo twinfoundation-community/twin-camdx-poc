@@ -23,9 +23,16 @@ export interface BuildEnvelopeOptions {
   payload: Record<string, unknown>;
 }
 
-const DEFAULT_CONSUMER = "SIM/CAMDX/GOV/MOH/CITIZEN-REGISTRY";
+/**
+ * The simulator presents as a CamDX Ministry of Commerce customs subsystem.
+ * These identifiers are illustrative — no real Cambodian TWIN subsystem is
+ * yet registered on a real X-Road central server (that's procedural, not
+ * technical; see CAMDX_POC.md). Format follows the canonical X-Road
+ * INSTANCE/CLASS/MEMBER/SUBSYSTEM shape.
+ */
+const DEFAULT_CONSUMER = "SIM/CAMDX/GOV/MOC/CUSTOMS-EXPORT";
 const DEFAULT_PROVIDER =
-  "SIM/CAMDX/GOV/MOH/HEALTH-REGISTRY/citizen-vaccination";
+  "SIM/CAMDX/GOV/MOC/CUSTOMS-REGISTRY/consignment-declaration";
 
 export function buildSimulatorEnvelope(
   options: BuildEnvelopeOptions,
@@ -37,8 +44,8 @@ export function buildSimulatorEnvelope(
     "x-road-client": options.consumerIdentifier ?? DEFAULT_CONSUMER,
     "x-road-service": options.providerIdentifier ?? DEFAULT_PROVIDER,
     "x-road-id": randomUUID(),
-    "x-road-userid": options.userId ?? "KH-CITIZEN-DEMO",
-    "x-road-issue": `vaccination-${Date.now()}`,
+    "x-road-userid": options.userId ?? "KH-EXPORTER-DEMO",
+    "x-road-issue": `consignment-${Date.now()}`,
   };
   // Non-standard but useful for receivers that want to verify body integrity
   // before SS-to-SS mTLS is in place. The simulator CLI sets the same header.

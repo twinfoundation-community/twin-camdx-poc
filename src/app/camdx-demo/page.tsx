@@ -34,11 +34,11 @@ export default function CamdxDemoPage() {
             to a TWIN node.
           </h1>
           <p className="mt-6 max-w-[58ch] font-display text-[20px] italic leading-[1.45] text-ink-soft">
-            A bidirectional proof of concept demonstrating that Cambodia&apos;s
-            X-Road v7.7 data exchange layer can interoperate with TWIN — passing
-            real data, issuing verifiable credentials, and anchoring records
-            on-chain — using existing TWIN infrastructure and published X-Road
-            protocols.
+            A bidirectional proof of concept demonstrating that a Cambodian
+            customs consignment, delivered over Cambodia&apos;s X-Road v7.7 data
+            exchange layer, can be ingested by a TWIN node, verifiably
+            credentialed, and anchored on-chain — using the same UN/CEFACT
+            supply-chain models that already power TWIN&apos;s UK pilot.
           </p>
         </div>
         <aside className="col-span-12 md:col-span-3 md:border-l md:border-rule md:pl-6">
@@ -121,11 +121,15 @@ export default function CamdxDemoPage() {
             subsystem would.
           </Note>
           <Note num="iv">
-            The illustrative vaccination record is not derived from a published
-            Cambodian Ministry of Health schema. The cryptographic artefacts
-            generated downstream — the W3C Verifiable Credential, the on-chain
-            attestation NFT — are real and independently verifiable on the
-            linked IOTA Rebased Explorer.
+            The customs consignment is an illustrative export declaration
+            (Cambodian milled rice → Singapore, HS 1006.30) in the UN/CEFACT
+            D23B vocabulary — the same model that TWIN&apos;s supply-chain
+            node carries in its UK pilot, and the activity type the canonical
+            <code className="font-mono"> @twin.org/data-space-connector-test-app </code>
+            subscribes to. The cryptographic artefacts generated downstream —
+            the W3C Verifiable Credential, the on-chain attestation NFT — are
+            real and independently verifiable on the linked IOTA Rebased
+            Explorer.
           </Note>
           <Note num="v">
             For the full runbook, see

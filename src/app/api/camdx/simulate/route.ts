@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { POST as inboundPost } from "../inbound/route";
 import { buildSimulatorEnvelope } from "@/lib/camdx/build-envelope";
-import { sampleCitizenVaccination } from "@/lib/camdx/samples/citizen-vaccination";
+import { sampleCustomsConsignment } from "@/lib/camdx/samples/customs-consignment";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export async function POST(): Promise<Response> {
   try {
     const envelope = buildSimulatorEnvelope({
-      payload: sampleCitizenVaccination as Record<string, unknown>,
+      payload: sampleCustomsConsignment as Record<string, unknown>,
     });
     const synthetic = new Request("http://internal/api/camdx/inbound", {
       method: "POST",

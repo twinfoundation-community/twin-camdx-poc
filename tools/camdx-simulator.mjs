@@ -18,13 +18,17 @@ const TARGET_URL =
   process.env.SIMULATOR_TARGET_URL ?? "http://localhost:3000/api/camdx/inbound";
 const PROVIDER_IDENTIFIER =
   process.env.SIMULATOR_PROVIDER_IDENTIFIER ??
-  "CAMDX/GOV/MOH/HEALTH-REGISTRY/citizen-vaccination";
+  "CAMDX/GOV/MOC/CUSTOMS-REGISTRY/consignment-declaration";
 const CONSUMER_IDENTIFIER =
-  process.env.SIMULATOR_CONSUMER_IDENTIFIER ?? "DEV/COM/TWIN/CAMDX-POC";
+  process.env.SIMULATOR_CONSUMER_IDENTIFIER ?? "CAMDX/GOV/MOC/CUSTOMS-EXPORT";
 
 function loadSamplePayload() {
   // Inline a sample so the script has no TypeScript dep. Mirrors
-  // src/lib/camdx/samples/citizen-vaccination.ts.
+  // src/lib/camdx/samples/customs-consignment.ts (UN/CEFACT D23B Consignment)
+  // — matches the canonical `data-space-connector-test-app` activity filter
+  // (objectType: https://vocabulary.uncefact.org/Consignment), so once the
+  // test app is registered as a Kitsune extension, this payload triggers
+  // the full task lifecycle on stage 04.
   const candidate = resolve(
     __dirname,
     "..",
@@ -32,43 +36,74 @@ function loadSamplePayload() {
     "lib",
     "camdx",
     "samples",
-    "citizen-vaccination.json",
+    "customs-consignment.json",
   );
   try {
     return JSON.parse(readFileSync(candidate, "utf8"));
   } catch {
     return {
-      "@context": [
-        "https://schema.org",
-        {
-          vaccinations: "https://schema.org/MedicalProcedure",
-          issuedBy: "https://schema.org/issuedBy",
+      "@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+      "@type": "Consignment",
+      globalId: "urn:ucr:24KH-EX-251205-00342171",
+      consignor: {
+        "@type": "TradeParty",
+        name: "Phnom Penh Export Trading Co., Ltd.",
+        id: "urn:kh-bizid:0042-EXP-2024-PNH",
+        postalAddress: {
+          "@type": "TradeAddress",
+          cityName: "Phnom Penh",
+          countryId: "unece:CountryId#KH",
         },
-      ],
-      "@type": "Person",
-      identifier: {
-        "@type": "PropertyValue",
-        propertyID: "KH-NID",
-        value: "120399042X",
       },
-      name: "Sok Vannarith",
-      birthDate: "1990-03-14",
-      nationality: "KH",
-      vaccinations: [
+      consignee: {
+        "@type": "TradeParty",
+        name: "Singapore Distribution Pte. Ltd.",
+        postalAddress: {
+          "@type": "TradeAddress",
+          cityName: "Singapore",
+          countryId: "unece:CountryId#SG",
+        },
+      },
+      loadingLocation: {
+        "@type": "TradeLocation",
+        id: "unece:LocationCode#KHPNH",
+        name: "Port of Phnom Penh",
+      },
+      unloadingLocation: {
+        "@type": "TradeLocation",
+        id: "unece:LocationCode#SGSIN",
+        name: "Port of Singapore",
+      },
+      destinationCountry: {
+        "@type": "Country",
+        countryId: "unece:CountryId#SG",
+      },
+      goodsItem: [
         {
-          "@type": "MedicalProcedure",
-          name: "COVID-19 mRNA vaccine",
-          vaccineCode: "208",
-          lotNumber: "EW0150",
-          occurrenceDate: "2024-01-22",
-          location: "Khan Daun Penh Health Centre, Phnom Penh",
-          issuedBy: {
-            "@type": "GovernmentOrganization",
-            name: "Cambodia Ministry of Health",
+          "@type": "ConsignmentItem",
+          sequenceNumber: 1,
+          grossMass: { value: 18500, unitCode: "KGM" },
+          packageCount: { value: 740, unitCode: "BG" },
+          tradeCommodity: {
+            "@type": "Commodity",
+            cargoDescription: "Cambodian fragrant jasmine rice (milled)",
+            classificationCode: "1006.30",
+            classificationSystem: "HS",
           },
         },
       ],
-      recordedAt: "2024-01-22T09:14:00+07:00",
+      transportContractDocument: {
+        "@type": "TransportDocument",
+        documentTypeCode: "BL",
+        issueDate: "2026-05-15",
+      },
+      customsDeclaration: {
+        "@type": "Document",
+        id: "KH-EX-2026-00342171",
+        documentTypeCode: "830",
+        issueDate: "2026-05-18",
+      },
+      recordedAt: "2026-05-20T08:30:00+07:00",
     };
   }
 }
@@ -92,8 +127,8 @@ async function main() {
     "X-Road-Client": CONSUMER_IDENTIFIER,
     "X-Road-Service": PROVIDER_IDENTIFIER,
     "X-Road-Id": messageId,
-    "X-Road-UserId": "KH120399042X",
-    "X-Road-Issue": `vaccination-${Date.now()}`,
+    "X-Road-UserId": "KH-EXPORTER-DEMO",
+    "X-Road-Issue": `consignment-${Date.now()}`,
   };
   headers["X-Road-Body-Digest"] = computeBodyDigest(body);
 
