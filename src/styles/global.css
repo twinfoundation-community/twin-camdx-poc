@@ -1,2 +1,280 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss";
+
+/* ─── Design tokens — Editorial Diplomatic Brief ─────────────────────────── */
+@theme {
+  /* Palette: parchment paper, ink, deep diplomatic navy, muted ochre, moss */
+  --color-paper: #f4efe5;
+  --color-paper-dim: #e9e1cd;
+  --color-paper-tint: #faf6ec;
+  --color-ink: #1b1814;
+  --color-ink-soft: #4a443c;
+  --color-ink-faint: #8a8175;
+  --color-rule: #c8bda5;
+  --color-rule-soft: #ddd3bb;
+  --color-navy: #1b2845;
+  --color-navy-soft: #364568;
+  --color-ochre: #a56a2d;
+  --color-ochre-soft: #c99c5e;
+  --color-moss: #4d6b4b;
+  --color-brick: #8b2c2c;
+
+  /* Type stack */
+  --font-display: var(--font-display), "Iowan Old Style", "Apple Garamond",
+    Georgia, serif;
+  --font-body: var(--font-body), "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: var(--font-mono), "SF Mono", Consolas, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    scroll-behavior: smooth;
+    color: var(--color-ink);
+  }
+
+  body {
+    /* Subtle paper grain so the background isn't a flat fill */
+    background-color: var(--color-paper);
+    background-image:
+      radial-gradient(
+        ellipse at 12% -8%,
+        rgba(165, 106, 45, 0.08),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse at 88% 110%,
+        rgba(27, 40, 69, 0.06),
+        transparent 60%
+      ),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    background-attachment: fixed, fixed, fixed;
+    background-size: 100% 100%, 100% 100%, 240px 240px;
+  }
+
+  ::selection {
+    background: var(--color-navy);
+    color: var(--color-paper-tint);
+  }
+
+  /* Tabular numerals everywhere so timestamps and counts align in columns */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Section label — small caps, hairline-spaced, used on Exhibit headers */
+  .label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink-soft);
+  }
+
+  /* Cartouche — the small bracketed reference tags (e.g. "EXHIBIT A") */
+  .cartouche {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--color-navy);
+    padding: 3px 9px;
+    border: 1px solid var(--color-navy);
+    border-radius: 1px;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+
+  /* Hairline ornamental divider with a centered diamond mark */
+  .rule-ornament {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .rule-ornament::before,
+  .rule-ornament::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--color-rule);
+  }
+  .rule-ornament .mark {
+    width: 7px;
+    height: 7px;
+    transform: rotate(45deg);
+    background: var(--color-navy);
+  }
+
+  /* Display serial number used in the timeline margin */
+  .stage-numeral {
+    font-family: var(--font-display);
+    font-feature-settings: "lnum", "ss01";
+    font-weight: 400;
+    font-style: italic;
+    font-size: 36px;
+    line-height: 1;
+    color: var(--color-ochre);
+    font-variant-numeric: lining-nums;
+  }
+  .stage-numeral[data-state="skipped"] {
+    color: var(--color-ink-faint);
+  }
+  .stage-numeral[data-state="error"] {
+    color: var(--color-brick);
+  }
+
+  /* Status pill — used inside stage headers */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .status-pill::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+  }
+  .status-pill[data-state="ok"] {
+    color: var(--color-moss);
+  }
+  .status-pill[data-state="error"] {
+    color: var(--color-brick);
+  }
+  .status-pill[data-state="skipped"] {
+    color: var(--color-ink-faint);
+  }
+
+  /* Primary action button — slab navy with ochre indicator hairline */
+  .btn-primary {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-navy);
+    color: var(--color-paper-tint);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 12px 22px;
+    border: 0;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .btn-primary::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 100%;
+    height: 1px;
+    background: var(--color-ochre);
+  }
+  .btn-primary:hover {
+    background: var(--color-navy-soft);
+  }
+  .btn-primary:disabled {
+    background: var(--color-ink-soft);
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 9px 16px;
+    border: 1px solid var(--color-ink);
+    cursor: pointer;
+    transition:
+      background 120ms ease,
+      color 120ms ease;
+  }
+  .btn-ghost:hover {
+    background: var(--color-ink);
+    color: var(--color-paper-tint);
+  }
+  .btn-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Exhibit frame — used to box request/response wires, log entries, etc. */
+  .exhibit {
+    background: var(--color-paper-tint);
+    border: 1px solid var(--color-rule);
+  }
+  .exhibit-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-rule);
+    background: var(--color-paper-dim);
+  }
+  .exhibit-body {
+    padding: 16px 18px;
+  }
+
+  /* External-link inline indicator */
+  .ext-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--color-navy);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-navy);
+    padding-bottom: 1px;
+    font-weight: 500;
+    transition: color 120ms ease;
+  }
+  .ext-link:hover {
+    color: var(--color-ochre);
+    border-bottom-color: var(--color-ochre);
+  }
+  .ext-link .arrow {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+}
+
+@layer utilities {
+  /* Subtle staggered fade-up on initial mount.
+     Each child gets --d N from inline style for sequencing. */
+  .fade-in-stack > * {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fade-up 520ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    animation-delay: calc(var(--d, 0) * 70ms);
+  }
+  @keyframes fade-up {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in-stack > * {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

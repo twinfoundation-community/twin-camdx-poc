@@ -42,135 +42,171 @@ export function OutboundPanel() {
   }
 
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-6">
-      <header className="mb-4">
-        <h2 className="text-lg font-semibold">Outbound</h2>
-        <p className="text-sm text-neutral-600">
-          TWIN → CamDX. Our adaptor calls an X-Road REST endpoint to prove wire
-          compatibility with the protocol Cambodia&apos;s data exchange layer
-          uses.
-        </p>
-      </header>
+    <section>
+      <div className="flex items-baseline justify-between">
+        <span className="cartouche">Exhibit A</span>
+        <span
+          className="status-pill"
+          data-state={result ? "ok" : error ? "error" : "skipped"}
+        >
+          {result ? "Executed" : error ? "Failed" : "Ready"}
+        </span>
+      </div>
 
-      <button
-        type="button"
-        onClick={call}
-        disabled={loading}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
-      >
-        {loading ? "Calling…" : "Call X-Road service"}
-      </button>
+      <h2 className="mt-5 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
+        TWIN initiates an X-Road call.
+      </h2>
+      <p className="mt-3 max-w-[42ch] text-[14px] leading-[1.6] text-ink-soft">
+        Our adaptor opens an X-Road REST gateway request to the public
+        Playground, proving wire-level compatibility with the protocol Cambodia
+        uses for inter-agency data exchange.
+      </p>
+
+      <div className="mt-7">
+        <button
+          type="button"
+          onClick={call}
+          disabled={loading}
+          className="btn-primary"
+        >
+          {loading ? (
+            <>
+              <span className="block h-2.5 w-2.5 animate-pulse rounded-full bg-ochre" />
+              Calling…
+            </>
+          ) : (
+            "Execute X-Road call"
+          )}
+        </button>
+      </div>
 
       {error && (
-        <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-900">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="mt-7 border-l-2 border-brick bg-paper-tint p-4 text-[13px] text-brick"
+        >
+          <span className="label" style={{ color: "var(--color-brick)" }}>
+            Error
+          </span>
+          <p className="mt-1 font-mono text-[12px]">{error}</p>
+        </div>
       )}
 
       {result && (
-        <div className="mt-6 space-y-4 text-sm">
-          <WireBlock label="Request" status={result.request.method}>
-            <KV label="URL" value={result.request.url} mono />
-            <Headers headers={result.request.headers} />
-          </WireBlock>
-          <WireBlock
-            label="Response"
-            status={`${result.response.status} ${result.response.statusText}`}
+        <div className="mt-8 space-y-6">
+          <Exhibit
+            title="Outgoing wire"
+            badge={result.request.method}
+            badgeTone="navy"
           >
-            <Headers headers={result.response.headers} highlight="x-road-" />
-            <KV
-              label="Body"
-              value={
-                typeof result.response.body === "string"
-                  ? result.response.body
-                  : JSON.stringify(result.response.body, null, 2)
-              }
-              mono
-              preformatted
+            <KVRow label="URL" value={result.request.url} />
+            <HeaderTable headers={result.request.headers} />
+          </Exhibit>
+
+          <Exhibit
+            title="Returning wire"
+            badge={`${result.response.status} ${result.response.statusText}`}
+            badgeTone={result.response.status < 300 ? "moss" : "brick"}
+          >
+            <HeaderTable
+              headers={result.response.headers}
+              emphasise="x-road-"
             />
-          </WireBlock>
+            <BodyBlock body={result.response.body} />
+          </Exhibit>
         </div>
       )}
     </section>
   );
 }
 
-function WireBlock({
-  label,
-  status,
+function Exhibit({
+  title,
+  badge,
+  badgeTone,
   children,
 }: {
-  label: string;
-  status: string;
+  title: string;
+  badge: string;
+  badgeTone: "navy" | "moss" | "brick";
   children: React.ReactNode;
 }) {
+  const colorVar = {
+    navy: "var(--color-navy)",
+    moss: "var(--color-moss)",
+    brick: "var(--color-brick)",
+  }[badgeTone];
   return (
-    <div className="rounded-lg border border-neutral-200">
-      <div className="flex items-center justify-between border-b border-neutral-200 bg-neutral-50 px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
-          {label}
+    <div className="exhibit">
+      <div className="exhibit-head">
+        <span className="label">{title}</span>
+        <span
+          className="font-mono text-[11px] font-semibold tracking-wider"
+          style={{ color: colorVar }}
+        >
+          {badge}
         </span>
-        <span className="font-mono text-xs text-neutral-600">{status}</span>
       </div>
-      <div className="space-y-2 p-3">{children}</div>
+      <div className="exhibit-body space-y-5">{children}</div>
     </div>
   );
 }
 
-function KV({
-  label,
-  value,
-  mono,
-  preformatted,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  preformatted?: boolean;
-}) {
+function KVRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs font-medium text-neutral-500">{label}</div>
-      {preformatted ? (
-        <pre className="mt-1 overflow-x-auto rounded bg-neutral-50 p-2 text-xs">
-          {value}
-        </pre>
-      ) : (
-        <div className={mono ? "mt-1 break-all font-mono text-xs" : "mt-1"}>
-          {value}
-        </div>
-      )}
+      <div className="label">{label}</div>
+      <div className="mt-1.5 break-all font-mono text-[12px] leading-[1.55] text-ink">
+        {value}
+      </div>
     </div>
   );
 }
 
-function Headers({
+function HeaderTable({
   headers,
-  highlight,
+  emphasise,
 }: {
   headers: Record<string, string>;
-  highlight?: string;
+  emphasise?: string;
 }) {
   return (
     <div>
-      <div className="text-xs font-medium text-neutral-500">Headers</div>
-      <dl className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 font-mono text-xs">
+      <div className="label">Headers</div>
+      <dl className="mt-1.5 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-1 font-mono text-[12px]">
         {Object.entries(headers).map(([k, v]) => {
-          const isXRoad = highlight && k.toLowerCase().startsWith(highlight);
+          const isEmph =
+            emphasise && k.toLowerCase().startsWith(emphasise);
           return (
             <div key={k} className="contents">
               <dt
-                className={
-                  isXRoad ? "text-emerald-700" : "text-neutral-700"
-                }
+                className="tnum"
+                style={{
+                  color: isEmph ? "var(--color-ochre)" : "var(--color-ink-soft)",
+                  fontWeight: isEmph ? 600 : 400,
+                }}
               >
-                {k}:
+                {k}
               </dt>
-              <dd className="break-all text-neutral-900">{v}</dd>
+              <dd className="break-all text-ink">{v}</dd>
             </div>
           );
         })}
       </dl>
+    </div>
+  );
+}
+
+function BodyBlock({ body }: { body: unknown }) {
+  const text =
+    typeof body === "string" ? body : JSON.stringify(body, null, 2);
+  const preview = text.length > 1200 ? text.slice(0, 1200) + "\n…" : text;
+  return (
+    <div>
+      <div className="label">Body</div>
+      <pre className="mt-1.5 max-h-[260px] overflow-auto border border-rule-soft bg-paper p-3 font-mono text-[11.5px] leading-[1.55] text-ink">
+        {preview}
+      </pre>
     </div>
   );
 }

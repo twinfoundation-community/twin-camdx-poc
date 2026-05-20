@@ -58,12 +58,33 @@ interface InboundRecord {
   note?: string;
 }
 
+type StageState = "ok" | "error" | "skipped";
+
 export function InboundPanel() {
   const [record, setRecord] = useState<InboundRecord | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "empty" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "simulating" | "empty" | "error"
+  >("idle");
   const [error, setError] = useState<string | null>(null);
+
+  const simulate = useCallback(async () => {
+    setStatus("simulating");
+    setError(null);
+    try {
+      const response = await fetch("/api/camdx/simulate", { method: "POST" });
+      const data = (await response.json()) as InboundRecord | { error: string };
+      if (!response.ok || "error" in data) {
+        setError("error" in data ? data.error : `HTTP ${response.status}`);
+        setStatus("error");
+        return;
+      }
+      setRecord(data);
+      setStatus("idle");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
+      setStatus("error");
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     setStatus("loading");
@@ -93,134 +114,196 @@ export function InboundPanel() {
     void refresh();
   }, [refresh]);
 
+  const busy = status === "loading" || status === "simulating";
+
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-6">
-      <header className="mb-4">
-        <h2 className="text-lg font-semibold">Inbound</h2>
-        <p className="text-sm text-neutral-600">
-          CamDX → TWIN. Run the simulator from a terminal — it POSTs an X-Road
-          envelope to our handler, which translates it, forwards it to
-          Kitsune&apos;s data-space-connector, and anchors the record as an
-          attestation.
-        </p>
-      </header>
+    <section>
+      <div className="flex items-baseline justify-between">
+        <span className="cartouche">Exhibit B</span>
+        <span
+          className="status-pill"
+          data-state={record ? "ok" : status === "error" ? "error" : "skipped"}
+        >
+          {record
+            ? "Delivered"
+            : status === "simulating"
+              ? "Simulating"
+              : status === "loading"
+                ? "Loading"
+                : status === "error"
+                  ? "Failed"
+                  : "Ready"}
+        </span>
+      </div>
 
-      <pre className="mb-4 overflow-x-auto rounded-md bg-neutral-900 p-3 text-xs text-neutral-100">
-        npm run simulator
-      </pre>
+      <h2 className="mt-5 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
+        CamDX delivers a record to TWIN.
+      </h2>
+      <p className="mt-3 max-w-[58ch] text-[14px] leading-[1.6] text-ink-soft">
+        A simulator stands in for a Cambodian X-Road security server: it posts a
+        standard X-Road envelope to our adaptor, which translates the payload
+        into TWIN&apos;s ingestion format, forwards it on, and produces two
+        independently verifiable cryptographic artefacts.
+      </p>
 
-      <button
-        type="button"
-        onClick={refresh}
-        disabled={status === "loading"}
-        className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
-      >
-        {status === "loading" ? "Refreshing…" : "Refresh"}
-      </button>
+      <div className="mt-7">
+        <button
+          type="button"
+          onClick={simulate}
+          disabled={busy}
+          className="btn-primary"
+        >
+          {status === "simulating" ? (
+            <>
+              <span className="block h-2.5 w-2.5 animate-pulse rounded-full bg-ochre" />
+              Simulating delivery…
+            </>
+          ) : (
+            "Simulate CamDX delivery"
+          )}
+        </button>
+      </div>
 
-      {status === "empty" && (
-        <p className="mt-4 text-sm text-neutral-600">
-          No inbound envelope received yet.
+      <details className="mt-5 max-w-[62ch] text-[12px] leading-[1.6] text-ink-soft">
+        <summary className="cursor-pointer select-none text-ink-faint hover:text-ink">
+          Or trigger from a developer terminal
+        </summary>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <pre className="border border-rule-soft bg-paper-tint px-3 py-2 font-mono text-[12px] text-ink">
+            <span className="text-ink-faint">$ </span>npm run simulator
+          </pre>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={busy}
+            className="btn-ghost"
+            style={{ fontSize: "11px", padding: "6px 12px" }}
+          >
+            {status === "loading" ? "Refreshing…" : "Refresh last seen"}
+          </button>
+          <span className="italic text-ink-faint">
+            (single-process cache; reliable on local dev, not on multi-worker
+            deploys)
+          </span>
+        </div>
+      </details>
+
+      {status === "empty" && !record && (
+        <p className="mt-8 max-w-[50ch] text-[13px] italic text-ink-soft">
+          No inbound envelope received yet. Click <em>Simulate CamDX delivery</em> to drive the full
+          pipeline end-to-end.
         </p>
       )}
 
       {error && (
-        <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-900">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="mt-8 border-l-2 border-brick bg-paper-tint p-4 text-[13px] text-brick"
+        >
+          <span className="label" style={{ color: "var(--color-brick)" }}>
+            Error
+          </span>
+          <p className="mt-1 font-mono text-[12px]">{error}</p>
+        </div>
       )}
 
       {record && (
-        <div className="mt-6 space-y-4 text-sm">
+        <ol className="timeline mt-10">
           <Stage
-            number={1}
-            label="Envelope received"
+            num={1}
+            title="Envelope received"
             state="ok"
-            detail="X-Road headers parsed"
+            caption="X-Road headers parsed by the inbound handler."
           >
-            <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 font-mono text-xs">
-              <dt className="text-neutral-700">X-Road-Client:</dt>
-              <dd className="break-all">{record.envelope.client}</dd>
-              {record.envelope.service && (
-                <>
-                  <dt className="text-neutral-700">X-Road-Service:</dt>
-                  <dd className="break-all">{record.envelope.service}</dd>
-                </>
-              )}
-              <dt className="text-neutral-700">X-Road-Id:</dt>
-              <dd className="break-all">{record.envelope.messageId}</dd>
-              {record.envelope.userId && (
-                <>
-                  <dt className="text-neutral-700">X-Road-UserId:</dt>
-                  <dd>{record.envelope.userId}</dd>
-                </>
-              )}
-              <dt className="text-neutral-700">Received at:</dt>
-              <dd>{record.envelope.receivedAt}</dd>
-            </dl>
+            <Definitions
+              entries={[
+                ["X-Road-Client", record.envelope.client],
+                ...(record.envelope.service
+                  ? ([["X-Road-Service", record.envelope.service]] as [
+                      string,
+                      string,
+                    ][])
+                  : []),
+                ["X-Road-Id", record.envelope.messageId],
+                ...(record.envelope.userId
+                  ? ([["X-Road-UserId", record.envelope.userId]] as [
+                      string,
+                      string,
+                    ][])
+                  : []),
+                ["Received at", record.envelope.receivedAt],
+              ]}
+            />
           </Stage>
 
           <Stage
-            number={2}
-            label="Translated to W3C Activity Streams"
+            num={2}
+            title="Translated to W3C Activity Streams"
             state="ok"
-            detail={`type: "${String(record.activity.type)}", @context: ${formatContext(record.activity["@context"])}`}
+            caption={`Wrapped as type "${String(record.activity.type)}" with @context ${formatContext(record.activity["@context"])}.`}
           >
-            <pre className="overflow-x-auto rounded bg-neutral-50 p-2 text-xs">
-              {JSON.stringify(record.activity, null, 2)}
-            </pre>
+            <ScrollExhibit
+              label="Activity payload"
+              text={JSON.stringify(record.activity, null, 2)}
+              maxHeight={220}
+            />
           </Stage>
 
           <Stage
-            number={3}
-            label="Forwarded to Kitsune /dataspace/notify"
+            num={3}
+            title="Forwarded to the data-space-connector"
             state={stageState(record.twin.configured, record.twin.notify)}
-            detail={notifyDetail(record.twin)}
+            caption={notifyCaption(record.twin)}
           >
             {record.twin.notify?.status === "ok" && (
-              <KV
-                label="Activity log URN"
-                value={record.twin.notify.data.activityLogId}
+              <KVStack
+                rows={[
+                  [
+                    "Activity log URN",
+                    record.twin.notify.data.activityLogId,
+                  ],
+                ]}
               />
             )}
             {record.twin.notify?.status === "error" && (
-              <ErrorBox text={record.twin.notify.error} />
+              <ErrorLine text={record.twin.notify.error} />
             )}
           </Stage>
 
           <Stage
-            number={4}
-            label="Activity log status"
+            num={4}
+            title="Ingestion confirmed"
             state={stageState(record.twin.configured, record.twin.activityLog)}
-            detail={activityLogDetail(record.twin)}
+            caption={activityLogCaption(record.twin)}
           >
             {record.twin.activityLog?.status === "ok" && (
               <ActivityLogSummary entry={record.twin.activityLog.data} />
             )}
             {record.twin.activityLog?.status === "error" && (
-              <ErrorBox text={record.twin.activityLog.error} />
+              <ErrorLine text={record.twin.activityLog.error} />
             )}
           </Stage>
 
           <Stage
-            number={5}
-            label="Signed as W3C Verifiable Credential"
+            num={5}
+            title="Signed as W3C Verifiable Credential"
             state={stageState(record.twin.configured, record.twin.credential)}
-            detail={credentialDetail(record.twin)}
+            caption={credentialCaption(record.twin)}
           >
             {record.twin.credential?.status === "ok" && (
               <CredentialSummary data={record.twin.credential.data} />
             )}
             {record.twin.credential?.status === "error" && (
-              <ErrorBox text={record.twin.credential.error} />
+              <ErrorLine text={record.twin.credential.error} />
             )}
           </Stage>
 
           <Stage
-            number={6}
-            label="Anchored as attestation"
+            num={6}
+            title="Anchored on IOTA Rebased testnet"
             state={stageState(record.twin.configured, record.twin.attestation)}
-            detail={attestationDetail(record.twin)}
+            caption={attestationCaption(record.twin)}
+            last
           >
             {record.twin.attestation?.status === "ok" && (
               <AttestationSummary
@@ -228,22 +311,90 @@ export function InboundPanel() {
               />
             )}
             {record.twin.attestation?.status === "error" && (
-              <ErrorBox text={record.twin.attestation.error} />
+              <ErrorLine text={record.twin.attestation.error} />
             )}
           </Stage>
+        </ol>
+      )}
 
-          {record.note && (
-            <p className="rounded-md bg-amber-50 p-3 text-xs text-amber-900">
-              {record.note}
-            </p>
-          )}
-        </div>
+      {record?.note && (
+        <p className="mt-10 max-w-[58ch] border-l-2 border-ochre-soft pl-4 text-[12px] leading-[1.6] italic text-ink-soft">
+          {record.note}
+        </p>
       )}
     </section>
   );
 }
 
-type StageState = "ok" | "error" | "skipped";
+/* ─── Timeline plumbing ─────────────────────────────────────────────────── */
+
+function Stage({
+  num,
+  title,
+  state,
+  caption,
+  children,
+  last,
+}: {
+  num: number;
+  title: string;
+  state: StageState;
+  caption?: string;
+  children?: React.ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <li className={`stage ${last ? "stage-last" : ""}`}>
+      <div className="stage-numeral" data-state={state}>
+        {String(num).padStart(2, "0")}
+      </div>
+      <div className="stage-content">
+        <div className="flex items-baseline justify-between gap-4">
+          <h3 className="font-display text-[22px] leading-[1.15] tracking-[-0.005em] text-ink">
+            {title}
+          </h3>
+          <span className="status-pill" data-state={state}>
+            {state === "ok" ? "Ok" : state === "error" ? "Error" : "Skipped"}
+          </span>
+        </div>
+        {caption && (
+          <p className="mt-1.5 text-[12.5px] italic leading-[1.55] text-ink-soft">
+            {caption}
+          </p>
+        )}
+        {children && <div className="mt-4">{children}</div>}
+      </div>
+      <style>{stageStyles}</style>
+    </li>
+  );
+}
+
+const stageStyles = `
+.timeline { position: relative; list-style: none; padding: 0; margin: 0; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 2.45rem;
+  top: 0.7rem;
+  bottom: 0.7rem;
+  width: 1px;
+  background: var(--color-rule);
+}
+.stage {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 1.75rem;
+  padding-bottom: 2.5rem;
+  position: relative;
+}
+.stage-last { padding-bottom: 0; }
+.stage > .stage-numeral {
+  justify-self: end;
+  position: relative;
+  background: var(--color-paper);
+  padding: 0 0.3rem;
+}
+`;
 
 function stageState(
   configured: boolean,
@@ -253,95 +404,98 @@ function stageState(
   return result.status === "ok" ? "ok" : "error";
 }
 
-function Stage({
-  number,
-  label,
-  state,
-  detail,
-  children,
-}: {
-  number: number;
-  label: string;
-  state: StageState;
-  detail?: string;
-  children?: React.ReactNode;
-}) {
-  const tone = {
-    ok: "border-emerald-200 bg-emerald-50",
-    error: "border-red-200 bg-red-50",
-    skipped: "border-neutral-200 bg-neutral-50",
-  }[state];
-  const dot = {
-    ok: "bg-emerald-500",
-    error: "bg-red-500",
-    skipped: "bg-neutral-300",
-  }[state];
-  const stateLabel = {
-    ok: "ok",
-    error: "error",
-    skipped: "skipped",
-  }[state];
+/* ─── Sub-components ────────────────────────────────────────────────────── */
 
+function Definitions({ entries }: { entries: [string, string][] }) {
   return (
-    <div className={`rounded-lg border ${tone}`}>
-      <div className="flex items-center gap-2 border-b border-neutral-200/60 px-3 py-2">
-        <span
-          className={`inline-flex h-5 w-5 items-center justify-center rounded-full ${dot} text-[10px] font-bold text-white`}
-        >
-          {number}
-        </span>
-        <span className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
-          {label}
-        </span>
-        <span className="ml-auto text-[10px] uppercase tracking-wider text-neutral-500">
-          {stateLabel}
-        </span>
-      </div>
-      {detail && (
-        <div className="border-b border-neutral-200/60 px-3 py-1.5 text-[11px] text-neutral-600">
-          {detail}
+    <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1.5 text-[12.5px]">
+      {entries.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt className="tnum font-mono text-ink-soft">{k}</dt>
+          <dd className="break-all font-mono text-ink">{v}</dd>
         </div>
-      )}
-      {children && <div className="p-3">{children}</div>}
+      ))}
+    </dl>
+  );
+}
+
+function KVStack({ rows }: { rows: [string, string][] }) {
+  return (
+    <div className="space-y-3">
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <div className="label">{label}</div>
+          <div className="mt-1 break-all font-mono text-[12px] leading-[1.55] text-ink">
+            {value}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function KV({ label, value }: { label: string; value: string }) {
+function ScrollExhibit({
+  label,
+  text,
+  maxHeight,
+}: {
+  label: string;
+  text: string;
+  maxHeight: number;
+}) {
   return (
     <div>
-      <div className="text-xs font-medium text-neutral-500">{label}</div>
-      <div className="mt-1 break-all font-mono text-xs">{value}</div>
+      <div className="label">{label}</div>
+      <pre
+        className="mt-1.5 overflow-auto border border-rule-soft bg-paper-tint p-3 font-mono text-[11.5px] leading-[1.55] text-ink"
+        style={{ maxHeight: `${maxHeight}px` }}
+      >
+        {text}
+      </pre>
     </div>
   );
 }
 
-function ErrorBox({ text }: { text: string }) {
+function ErrorLine({ text }: { text: string }) {
   return (
-    <pre className="overflow-x-auto rounded bg-red-100/50 p-2 text-xs text-red-900">
-      {text}
-    </pre>
+    <div className="border-l-2 border-brick bg-paper-tint p-3 text-[12px] leading-[1.5] text-brick">
+      <pre className="overflow-x-auto whitespace-pre-wrap font-mono">{text}</pre>
+    </div>
   );
 }
 
 function ActivityLogSummary({ entry }: { entry: ActivityLogEntry }) {
-  const counts: Array<[string, unknown[] | undefined]> = [
-    ["pending", entry.pendingTasks],
-    ["running", entry.runningTasks],
-    ["finalized", entry.finalizedTasks],
-    ["errors", entry.inErrorTasks],
+  const counts: [string, number][] = [
+    ["pending", entry.pendingTasks?.length ?? 0],
+    ["running", entry.runningTasks?.length ?? 0],
+    ["finalized", entry.finalizedTasks?.length ?? 0],
+    ["errors", entry.inErrorTasks?.length ?? 0],
   ];
   return (
-    <div className="space-y-2">
-      <KV label="id" value={entry.id} />
-      {entry.generator && <KV label="generator (DID)" value={entry.generator} />}
+    <div className="space-y-4">
+      <KVStack
+        rows={[
+          ["Log id", entry.id],
+          ...(entry.generator
+            ? ([["Generator DID", entry.generator]] as [string, string][])
+            : []),
+        ]}
+      />
       <div>
-        <div className="text-xs font-medium text-neutral-500">Task counts</div>
-        <div className="mt-1 flex gap-3 font-mono text-xs">
+        <div className="label">Tasks</div>
+        <div className="mt-2 grid grid-cols-4 gap-3">
           {counts.map(([k, v]) => (
-            <span key={k}>
-              {k}: <strong>{(v ?? []).length}</strong>
-            </span>
+            <div
+              key={k}
+              className="border border-rule-soft bg-paper-tint p-2.5 text-center"
+            >
+              <div className="font-display text-[22px] leading-none text-ink tnum">
+                {v}
+              </div>
+              <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+                {k}
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -349,96 +503,61 @@ function ActivityLogSummary({ entry }: { entry: ActivityLogEntry }) {
   );
 }
 
-function formatContext(ctx: unknown): string {
-  if (typeof ctx === "string") return ctx;
-  if (Array.isArray(ctx)) return `[${ctx.length} entries]`;
-  return "<object>";
-}
-
-function notifyDetail(twin: TwinForwardSummary): string {
-  if (!twin.configured) {
-    return "Skipped — TWIN_NODE_* env vars not set in .env.local";
-  }
-  const n = twin.notify;
-  if (!n) return "Not attempted";
-  if (n.status === "ok") return `POST /dataspace/notify → 201 Created`;
-  return "Forward failed";
-}
-
-function activityLogDetail(twin: TwinForwardSummary): string {
-  if (!twin.configured) return "Skipped";
-  const al = twin.activityLog;
-  if (!al) return "Not attempted";
-  if (al.status === "ok") {
-    const total =
-      (al.data.pendingTasks?.length ?? 0) +
-      (al.data.runningTasks?.length ?? 0) +
-      (al.data.finalizedTasks?.length ?? 0) +
-      (al.data.inErrorTasks?.length ?? 0);
-    return `GET /dataspace/activity-logs/:id → 200 OK (${total} task${total === 1 ? "" : "s"} tracked)`;
-  }
-  return "Activity log fetch failed";
-}
-
-function attestationDetail(twin: TwinForwardSummary): string {
-  if (!twin.configured) return "Skipped";
-  const a = twin.attestation;
-  if (!a) return "Not attempted";
-  if (a.status === "ok") return `POST /attestation → 201 Created`;
-  return "Attestation create failed";
-}
-
-function credentialDetail(twin: TwinForwardSummary): string {
-  if (!twin.configured) return "Skipped";
-  const c = twin.credential;
-  if (!c) return "Not attempted (TWIN_NODE_ADMIN_DID not set)";
-  if (c.status === "ok") {
-    const verb = c.data.verificationMethodAlreadyExisted ? "reused" : "created";
-    return `Verification method ${verb} → POST /identity/<DID>/verifiable-credential/<vmId> → 200 OK`;
-  }
-  return "VC issuance failed";
-}
-
 function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
   const vc = data.verifiableCredential;
   const proof = (vc.proof as Record<string, unknown> | undefined) ?? {};
-  const types = Array.isArray(vc.type) ? (vc.type as string[]).join(", ") : String(vc.type ?? "");
+  const types = Array.isArray(vc.type)
+    ? (vc.type as string[]).join(", ")
+    : String(vc.type ?? "");
   const cryptosuite = String(proof.cryptosuite ?? "—");
   const verificationMethod = String(proof.verificationMethod ?? "—");
   const issuer = String(vc.issuer ?? "");
   const issuerObjectId = didToObjectId(issuer);
   return (
-    <div className="space-y-2">
+    <div className="space-y-5">
       <div>
-        <div className="text-xs font-medium text-neutral-500">Issuer DID</div>
-        <div className="mt-1 break-all font-mono text-xs">{issuer || "—"}</div>
+        <div className="label">Issuer DID</div>
+        <div className="mt-1.5 break-all font-mono text-[12px] text-ink">
+          {issuer || "—"}
+        </div>
         {issuerObjectId && (
-          <ExplorerLink
-            objectId={issuerObjectId}
-            label="View issuer DID on IOTA Rebased Explorer"
-          />
+          <a
+            href={explorerObjectUrl(issuerObjectId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ext-link mt-2 text-[12px]"
+          >
+            View on IOTA Rebased Explorer{" "}
+            <span className="font-mono text-[10px] text-ink-faint">
+              ({issuerObjectId.slice(0, 12)}…)
+            </span>{" "}
+            <span className="arrow">↗</span>
+          </a>
         )}
       </div>
-      <KV label="Credential id" value={String(vc.id ?? "—")} />
+
+      <KVStack
+        rows={[
+          ["Credential id", String(vc.id ?? "—")],
+          ["Types", types],
+        ]}
+      />
+
       <div>
-        <div className="text-xs font-medium text-neutral-500">Types</div>
-        <div className="mt-1 font-mono text-xs">{types}</div>
-      </div>
-      <div>
-        <div className="text-xs font-medium text-neutral-500">Proof</div>
-        <dl className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 font-mono text-xs">
-          <dt className="text-neutral-700">cryptosuite:</dt>
-          <dd>{cryptosuite}</dd>
-          <dt className="text-neutral-700">verificationMethod:</dt>
-          <dd className="break-all">{verificationMethod}</dd>
+        <div className="label">Proof</div>
+        <dl className="mt-1.5 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 font-mono text-[12px]">
+          <dt className="text-ink-soft">cryptosuite</dt>
+          <dd className="text-ochre">{cryptosuite}</dd>
+          <dt className="text-ink-soft">verificationMethod</dt>
+          <dd className="break-all text-ink">{verificationMethod}</dd>
         </dl>
       </div>
-      <div>
-        <div className="text-xs font-medium text-neutral-500">JWT (preview)</div>
-        <pre className="mt-1 overflow-x-auto rounded bg-neutral-50 p-2 font-mono text-[11px]">
-          {data.jwt.length > 220 ? `${data.jwt.slice(0, 220)}…` : data.jwt}
-        </pre>
-      </div>
+
+      <ScrollExhibit
+        label="JWT (preview)"
+        text={data.jwt.length > 360 ? `${data.jwt.slice(0, 360)}…` : data.jwt}
+        maxHeight={110}
+      />
     </div>
   );
 }
@@ -446,37 +565,83 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
 function AttestationSummary({ attestationId }: { attestationId: string }) {
   const objectId = attestationUrnToObjectId(attestationId);
   return (
-    <div className="space-y-2">
-      <KV label="Attestation URN" value={attestationId} />
+    <div className="space-y-3">
+      <div>
+        <div className="label">Attestation URN</div>
+        <div className="mt-1.5 break-all font-mono text-[12px] text-ink">
+          {attestationId}
+        </div>
+      </div>
       {objectId && (
-        <ExplorerLink
-          objectId={objectId}
-          label="View attestation NFT on IOTA Rebased Explorer"
-        />
+        <a
+          href={explorerObjectUrl(objectId)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ext-link text-[12px]"
+        >
+          View NFT on IOTA Rebased Explorer{" "}
+          <span className="font-mono text-[10px] text-ink-faint">
+            ({objectId.slice(0, 12)}…)
+          </span>{" "}
+          <span className="arrow">↗</span>
+        </a>
       )}
     </div>
   );
 }
 
-function ExplorerLink({
-  objectId,
-  label,
-}: {
-  objectId: string;
-  label: string;
-}) {
-  return (
-    <a
-      href={explorerObjectUrl(objectId)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
-    >
-      <span>↗</span>
-      <span>{label}</span>
-      <span className="font-mono text-[10px] text-neutral-500">
-        ({objectId.slice(0, 10)}…)
-      </span>
-    </a>
-  );
+/* ─── Caption helpers ───────────────────────────────────────────────────── */
+
+function formatContext(ctx: unknown): string {
+  if (typeof ctx === "string") return ctx;
+  if (Array.isArray(ctx)) return `[${ctx.length} entries]`;
+  return "<object>";
+}
+
+function notifyCaption(twin: TwinForwardSummary): string {
+  if (!twin.configured) {
+    return "Skipped — TWIN_NODE_* env vars are not configured.";
+  }
+  const n = twin.notify;
+  if (!n) return "Not attempted.";
+  if (n.status === "ok") {
+    return "POST /dataspace/notify returned 201 Created. The activity log URN sits in the Location header.";
+  }
+  return "Forward failed.";
+}
+
+function activityLogCaption(twin: TwinForwardSummary): string {
+  if (!twin.configured) return "Skipped.";
+  const al = twin.activityLog;
+  if (!al) return "Not attempted.";
+  if (al.status === "ok") {
+    const total =
+      (al.data.pendingTasks?.length ?? 0) +
+      (al.data.runningTasks?.length ?? 0) +
+      (al.data.finalizedTasks?.length ?? 0) +
+      (al.data.inErrorTasks?.length ?? 0);
+    return `GET /dataspace/activity-logs/:id returned 200 OK with ${total} task${total === 1 ? "" : "s"} tracked.`;
+  }
+  return "Activity log fetch failed.";
+}
+
+function attestationCaption(twin: TwinForwardSummary): string {
+  if (!twin.configured) return "Skipped.";
+  const a = twin.attestation;
+  if (!a) return "Not attempted.";
+  if (a.status === "ok") {
+    return "POST /attestation returned 201 Created. The fingerprint is now an immutable on-chain NFT.";
+  }
+  return "Attestation create failed.";
+}
+
+function credentialCaption(twin: TwinForwardSummary): string {
+  if (!twin.configured) return "Skipped.";
+  const c = twin.credential;
+  if (!c) return "Not attempted — TWIN_NODE_ADMIN_DID is unset.";
+  if (c.status === "ok") {
+    const verb = c.data.verificationMethodAlreadyExisted ? "reused" : "created";
+    return `Assertion verification method ${verb}; the credential was signed with DataIntegrityProof.`;
+  }
+  return "VC issuance failed.";
 }
