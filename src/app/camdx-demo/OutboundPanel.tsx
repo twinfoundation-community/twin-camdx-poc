@@ -154,9 +154,12 @@ function Exhibit({
 
 function KVRow({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="label">{label}</div>
-      <div className="mt-1.5 break-all font-mono text-[12px] leading-[1.55] text-ink">
+      <div
+        className="mt-1.5 font-mono text-[12px] leading-[1.55] text-ink"
+        style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+      >
         {value}
       </div>
     </div>
@@ -171,9 +174,9 @@ function HeaderTable({
   emphasise?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="label">Headers</div>
-      <dl className="mt-1.5 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-1 font-mono text-[12px]">
+      <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-5 gap-y-1 font-mono text-[12px]">
         {Object.entries(headers).map(([k, v]) => {
           const isEmph =
             emphasise && k.toLowerCase().startsWith(emphasise);
@@ -188,7 +191,12 @@ function HeaderTable({
               >
                 {k}
               </dt>
-              <dd className="break-all text-ink">{v}</dd>
+              <dd
+                className="min-w-0 text-ink"
+                style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+              >
+                {v}
+              </dd>
             </div>
           );
         })}
@@ -202,9 +210,9 @@ function BodyBlock({ body }: { body: unknown }) {
     typeof body === "string" ? body : JSON.stringify(body, null, 2);
   const preview = text.length > 1200 ? text.slice(0, 1200) + "\n…" : text;
   return (
-    <div>
+    <div className="min-w-0">
       <div className="label">Body</div>
-      <pre className="mt-1.5 max-h-[260px] overflow-auto border border-rule-soft bg-paper p-3 font-mono text-[11.5px] leading-[1.55] text-ink">
+      <pre className="mt-1.5 w-full max-w-full max-h-[260px] overflow-auto border border-rule-soft bg-paper p-3 font-mono text-[11.5px] leading-[1.55] text-ink">
         {preview}
       </pre>
     </div>

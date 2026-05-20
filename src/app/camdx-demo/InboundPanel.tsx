@@ -370,7 +370,7 @@ function Stage({
 }
 
 const stageStyles = `
-.timeline { position: relative; list-style: none; padding: 0; margin: 0; }
+.timeline { position: relative; list-style: none; padding: 0; margin: 0; min-width: 0; }
 .timeline::before {
   content: "";
   position: absolute;
@@ -382,7 +382,9 @@ const stageStyles = `
 }
 .stage {
   display: grid;
-  grid-template-columns: 4.5rem 1fr;
+  /* minmax(0, 1fr) so unbreakable content can't expand the column past the
+     parent's width (default 1fr resolves to min-content). */
+  grid-template-columns: 4.5rem minmax(0, 1fr);
   gap: 1.75rem;
   padding-bottom: 2.5rem;
   position: relative;
@@ -394,6 +396,7 @@ const stageStyles = `
   background: var(--color-paper);
   padding: 0 0.3rem;
 }
+.stage > .stage-content { min-width: 0; }
 `;
 
 function stageState(
@@ -408,11 +411,16 @@ function stageState(
 
 function Definitions({ entries }: { entries: [string, string][] }) {
   return (
-    <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1.5 text-[12.5px]">
+    <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1.5 text-[12.5px]">
       {entries.map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="tnum font-mono text-ink-soft">{k}</dt>
-          <dd className="break-all font-mono text-ink">{v}</dd>
+          <dd
+            className="min-w-0 font-mono text-ink"
+            style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+          >
+            {v}
+          </dd>
         </div>
       ))}
     </dl>
@@ -421,11 +429,14 @@ function Definitions({ entries }: { entries: [string, string][] }) {
 
 function KVStack({ rows }: { rows: [string, string][] }) {
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       {rows.map(([label, value]) => (
-        <div key={label}>
+        <div key={label} className="min-w-0">
           <div className="label">{label}</div>
-          <div className="mt-1 break-all font-mono text-[12px] leading-[1.55] text-ink">
+          <div
+            className="mt-1 font-mono text-[12px] leading-[1.55] text-ink"
+            style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+          >
             {value}
           </div>
         </div>
@@ -438,17 +449,26 @@ function ScrollExhibit({
   label,
   text,
   maxHeight,
+  wrap,
 }: {
   label: string;
   text: string;
   maxHeight: number;
+  /** When true, wrap unbreakable strings (good for base64/JWT).
+      When false (default), preserve `pre` whitespace and scroll horizontally. */
+  wrap?: boolean;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="label">{label}</div>
       <pre
-        className="mt-1.5 overflow-auto border border-rule-soft bg-paper-tint p-3 font-mono text-[11.5px] leading-[1.55] text-ink"
-        style={{ maxHeight: `${maxHeight}px` }}
+        className="mt-1.5 w-full max-w-full overflow-auto border border-rule-soft bg-paper-tint p-3 font-mono text-[11.5px] leading-[1.55] text-ink"
+        style={{
+          maxHeight: `${maxHeight}px`,
+          ...(wrap
+            ? { whiteSpace: "pre-wrap", overflowWrap: "anywhere" }
+            : {}),
+        }}
       >
         {text}
       </pre>
@@ -515,9 +535,12 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
   const issuerObjectId = didToObjectId(issuer);
   return (
     <div className="space-y-5">
-      <div>
+      <div className="min-w-0">
         <div className="label">Issuer DID</div>
-        <div className="mt-1.5 break-all font-mono text-[12px] text-ink">
+        <div
+          className="mt-1.5 font-mono text-[12px] text-ink"
+          style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+        >
           {issuer || "—"}
         </div>
         {issuerObjectId && (
@@ -543,20 +566,26 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
         ]}
       />
 
-      <div>
+      <div className="min-w-0">
         <div className="label">Proof</div>
-        <dl className="mt-1.5 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 font-mono text-[12px]">
+        <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1 font-mono text-[12px]">
           <dt className="text-ink-soft">cryptosuite</dt>
           <dd className="text-ochre">{cryptosuite}</dd>
           <dt className="text-ink-soft">verificationMethod</dt>
-          <dd className="break-all text-ink">{verificationMethod}</dd>
+          <dd
+            className="min-w-0 text-ink"
+            style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+          >
+            {verificationMethod}
+          </dd>
         </dl>
       </div>
 
       <ScrollExhibit
         label="JWT (preview)"
-        text={data.jwt.length > 360 ? `${data.jwt.slice(0, 360)}…` : data.jwt}
-        maxHeight={110}
+        text={data.jwt.length > 240 ? `${data.jwt.slice(0, 240)}…` : data.jwt}
+        maxHeight={120}
+        wrap
       />
     </div>
   );
@@ -565,10 +594,13 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
 function AttestationSummary({ attestationId }: { attestationId: string }) {
   const objectId = attestationUrnToObjectId(attestationId);
   return (
-    <div className="space-y-3">
-      <div>
+    <div className="min-w-0 space-y-3">
+      <div className="min-w-0">
         <div className="label">Attestation URN</div>
-        <div className="mt-1.5 break-all font-mono text-[12px] text-ink">
+        <div
+          className="mt-1.5 font-mono text-[12px] leading-[1.55] text-ink"
+          style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+        >
           {attestationId}
         </div>
       </div>

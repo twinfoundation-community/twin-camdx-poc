@@ -72,12 +72,21 @@ export default function CamdxDemoPage() {
         <span className="mark" />
       </div>
 
-      {/* Body — asymmetric two columns: outbound 5, inbound 7 */}
+      {/* Body — asymmetric two columns: outbound 5, inbound 7.
+          `min-w-0` is load-bearing: without it, the grid track defaults to
+          min-content sizing and any unbreakable string (JWT, URN, JSON line)
+          blows the column out past its 5/7 allocation. */}
       <section className="mt-14 grid grid-cols-12 gap-12">
-        <div className="col-span-12 lg:col-span-5" style={{ ["--d" as string]: 3 }}>
+        <div
+          className="col-span-12 min-w-0 lg:col-span-5"
+          style={{ ["--d" as string]: 3 }}
+        >
           <OutboundPanel />
         </div>
-        <div className="col-span-12 lg:col-span-7" style={{ ["--d" as string]: 4 }}>
+        <div
+          className="col-span-12 min-w-0 lg:col-span-7"
+          style={{ ["--d" as string]: 4 }}
+        >
           <InboundPanel />
         </div>
       </section>
