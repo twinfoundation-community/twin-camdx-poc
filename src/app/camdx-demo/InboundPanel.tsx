@@ -123,7 +123,15 @@ export function InboundPanel() {
         <span className="eyebrow">Inbound · CamDX → TWIN</span>
         <span
           className="status-pill"
-          data-state={record ? "ok" : status === "error" ? "error" : "skipped"}
+          data-state={
+            record
+              ? "ok"
+              : status === "error"
+                ? "error"
+                : status === "simulating" || status === "loading"
+                  ? "running"
+                  : "skipped"
+          }
         >
           {record
             ? "Delivered"

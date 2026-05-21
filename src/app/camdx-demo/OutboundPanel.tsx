@@ -47,9 +47,23 @@ export function OutboundPanel() {
         <span className="eyebrow">Outbound · TWIN → CamDX</span>
         <span
           className="status-pill"
-          data-state={result ? "ok" : error ? "error" : "skipped"}
+          data-state={
+            result
+              ? "ok"
+              : error
+                ? "error"
+                : loading
+                  ? "running"
+                  : "skipped"
+          }
         >
-          {result ? "Executed" : error ? "Failed" : "Ready"}
+          {result
+            ? "Executed"
+            : error
+              ? "Failed"
+              : loading
+                ? "Calling"
+                : "Ready"}
         </span>
       </div>
 

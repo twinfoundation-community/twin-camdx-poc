@@ -286,10 +286,13 @@
     color: var(--color-slate-dark);
   }
   .status-pill[data-state="ok"] {
-    color: var(--color-slate-dark);
+    color: var(--color-olive);
   }
   .status-pill[data-state="error"] {
     color: var(--color-clay);
+  }
+  .status-pill[data-state="running"] {
+    color: var(--color-slate-medium);
   }
   .status-pill[data-state="skipped"] {
     color: var(--color-cloud-dark);
@@ -300,6 +303,16 @@
     width: 6px;
     height: 6px;
     background: currentColor;
+  }
+  .status-pill[data-state="running"]::before {
+    animation: status-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes status-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status-pill[data-state="running"]::before { animation: none; }
   }
 
   /* Channel badge — declares "Live" vs "Simulated" via a small marker
