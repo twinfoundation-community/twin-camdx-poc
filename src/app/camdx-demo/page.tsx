@@ -33,15 +33,14 @@ export default function CamdxDemoPage() {
             Connecting <em className="font-display italic text-ochre">CamDX</em>{" "}
             to a TWIN node.
           </h1>
-          <p className="mt-6 max-w-[62ch] font-display text-[20px] italic leading-[1.45] text-ink-soft">
-            A bidirectional proof of concept, demonstrated as two independent
-            directions. <span className="not-italic font-body text-[14px] font-semibold tracking-[0.06em] uppercase text-navy">TWIN → CamDX</span>{" "}
-            issues a live call against the public X-Road Playground.{" "}
+          <p className="mt-6 max-w-[58ch] font-display text-[20px] italic leading-[1.45] text-ink-soft">
+            Two directions, demonstrated independently.{" "}
+            <span className="not-italic font-body text-[14px] font-semibold tracking-[0.06em] uppercase text-navy">TWIN → CamDX</span>{" "}
+            calls the public X-Road Playground.{" "}
             <span className="not-italic font-body text-[14px] font-semibold tracking-[0.06em] uppercase text-navy">CamDX → TWIN</span>{" "}
-            receives a simulated Cambodian customs delivery and lands it in a
-            fully live TWIN pipeline — the verifiable credential and the
-            on-chain attestation NFT are real and independently auditable on
-            the IOTA Rebased Explorer.
+            is delivered by a local simulator into a live TWIN pipeline that
+            issues a real verifiable credential and anchors an NFT on the IOTA
+            Rebased testnet.
           </p>
         </div>
         <aside className="col-span-12 md:col-span-3 md:border-l md:border-rule md:pl-6">
@@ -102,42 +101,31 @@ export default function CamdxDemoPage() {
         <span className="label">Notes &amp; provenance</span>
         <ol className="mt-5 space-y-3 max-w-[78ch] text-[13px] leading-[1.65] text-ink-soft">
           <Note num="i">
-            <strong className="text-ink">Outbound</strong> calls the public
-            X-Road Playground using its real, pre-registered
+            <strong className="text-ink">Outbound</strong> uses the
+            Playground&apos;s real
             <code className="font-mono"> PLAYGROUND/COM/1234567-8/TestClient </code>
-            subsystem. The X-Road wire is real, not mocked — every response
-            carries a provider-attached
+            subsystem. Responses carry a provider-attached
             <code className="font-mono"> x-road-request-hash </code> per spec.
           </Note>
           <Note num="ii">
-            <strong className="text-ink">Inbound</strong> uses a CamDX-side
-            simulator whose
-            <code className="font-mono"> X-Road-Client </code> identifier is
-            fabricated: no Cambodian TWIN subsystem is yet registered on a real
-            X-Road central server. That step is procedural, not technical, and
-            would happen as part of an implementation engagement.
+            <strong className="text-ink">Inbound</strong> simulator&apos;s
+            <code className="font-mono"> X-Road-Client </code> is fabricated.
+            No Cambodian TWIN subsystem is registered on a real X-Road central
+            server yet — procedural, not technical.
           </Note>
           <Note num="iii">
-            Real SS-to-SS mTLS is not modelled because we do not operate an
-            X-Road security server ourselves. We call the Playground&apos;s
-            consumer SS REST gateway directly, exactly as a registered
-            subsystem would.
+            SS-to-SS mTLS is not modelled. We don&apos;t operate an X-Road
+            security server, so we call the Playground&apos;s consumer SS
+            REST gateway directly.
           </Note>
           <Note num="iv">
-            The customs consignment is an illustrative export declaration
-            (Cambodian milled rice → Singapore, HS 1006.30) in the UN/CEFACT
-            D23B vocabulary — the same model that TWIN&apos;s supply-chain
-            node carries in its UK pilot, and the activity type the canonical
-            <code className="font-mono"> @twin.org/data-space-connector-test-app </code>
-            subscribes to. The cryptographic artefacts generated downstream —
-            the W3C Verifiable Credential, the on-chain attestation NFT — are
-            real and independently verifiable on the linked IOTA Rebased
-            Explorer.
+            The consignment is an illustrative export declaration (Cambodian
+            milled rice → Singapore, HS 1006.30) in UN/CEFACT D23B — the same
+            model TWIN&apos;s UK supply-chain pilot uses. The VC and the
+            attestation NFT are real and verifiable on the linked explorer.
           </Note>
           <Note num="v">
-            For the full runbook, see
-            <code className="font-mono"> CAMDX_POC.md </code>
-            in the repository.
+            Full runbook in <code className="font-mono">CAMDX_POC.md</code>.
           </Note>
         </ol>
       </footer>

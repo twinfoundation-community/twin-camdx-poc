@@ -68,9 +68,7 @@ export function OutboundPanel() {
       </h2>
       <p className="mt-3 max-w-[42ch] text-[14px] leading-[1.6] text-ink-soft">
         Our adaptor opens an X-Road REST gateway request to the public
-        Playground, proving wire-level compatibility with the protocol Cambodia
-        uses for inter-agency data exchange. Every byte on this side of the
-        page travels over the real X-Road network.
+        Playground using the same protocol Cambodia uses.
       </p>
 
       <div className="mt-7">
@@ -98,10 +96,7 @@ export function OutboundPanel() {
           <span className="label" style={{ color: "var(--color-ochre)" }}>
             Working
           </span>
-          <p className="mt-1 text-ink">
-            Opening an X-Road REST gateway request to the public Playground.
-            Usually completes in 1–2 seconds.
-          </p>
+          <p className="mt-1 text-ink">Opening the X-Road gateway.</p>
         </div>
       )}
 

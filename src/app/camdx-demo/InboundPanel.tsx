@@ -167,11 +167,7 @@ export function InboundPanel() {
         CamDX delivers a record to TWIN.
       </h2>
       <p className="mt-3 max-w-[58ch] text-[14px] leading-[1.6] text-ink-soft">
-        The X-Road upstream is simulated locally (no Cambodian TWIN subsystem
-        is registered on a real X-Road central server yet — procedural, not
-        technical). From the moment the envelope reaches our handler, the
-        rest of the pipeline is fully live: real network calls to a hosted
-        TWIN node, real Ed25519 signature, real on-chain NFT.
+        The X-Road upstream is simulated. Everything downstream is live.
       </p>
 
       <div className="mt-7">
@@ -200,9 +196,7 @@ export function InboundPanel() {
             Working
           </span>
           <p className="mt-1 text-ink">
-            Building the X-Road envelope, translating, then sequencing four live
-            calls to Kitsune (notify → activity-log → verifiable-credential →
-            attestation). Usually completes in 3–6 seconds.
+            Notify → activity-log → credential → attestation. ~5s.
           </p>
         </div>
       )}
@@ -233,9 +227,7 @@ export function InboundPanel() {
 
       {!record && status !== "simulating" && !error && (
         <p className="mt-8 max-w-[60ch] text-[13px] italic text-ink-soft">
-          Click <em>Simulate CamDX delivery</em> above to drive the pipeline
-          end-to-end and see the six-stage timeline populate with real
-          cryptographic artefacts.
+          Click <em>Simulate CamDX delivery</em> to run the six-stage pipeline.
         </p>
       )}
 
@@ -259,9 +251,9 @@ export function InboundPanel() {
             state="ok"
             channel={{
               kind: "simulated",
-              detail: "X-Road envelope constructed in Node, then handed to the inbound route",
+              detail: "X-Road envelope built in Node",
             }}
-            caption="The headers below are exactly what a Cambodian Security Server would deliver to a registered TWIN subsystem — minus the SS-to-SS mTLS, which is the part we don't yet operate."
+            caption="The headers below match what a Cambodian Security Server would deliver."
           >
             <Definitions
               entries={[
@@ -290,9 +282,9 @@ export function InboundPanel() {
             state="ok"
             channel={{
               kind: "live",
-              detail: "Pure code transformation in the inbound handler",
+              detail: "Inbound handler",
             }}
-            caption={`Wrapped as type "${String(record.activity.type)}" with @context ${formatContext(record.activity["@context"])}.`}
+            caption={`type: "${String(record.activity.type)}", @context: ${formatContext(record.activity["@context"])}`}
           >
             <ScrollExhibit
               label="Activity payload"
@@ -707,9 +699,7 @@ function AttestationSummary({ attestationId }: { attestationId: string }) {
               <span className="lead">Verify independently</span>
             </div>
             <p className="subject">
-              This NFT was just minted on the IOTA Rebased testnet. The object
-              id is publicly resolvable on the official explorer — anyone can
-              audit it without our cooperation.
+              Audit this NFT on the IOTA Rebased explorer.
             </p>
           </div>
           <a
@@ -718,7 +708,7 @@ function AttestationSummary({ attestationId }: { attestationId: string }) {
             rel="noopener noreferrer"
             className="cta"
           >
-            Open on explorer <span className="arrow">↗</span>
+            Open <span className="arrow">↗</span>
           </a>
         </div>
       )}
@@ -736,12 +726,12 @@ function formatContext(ctx: unknown): string {
 
 function notifyCaption(twin: TwinForwardSummary): string {
   if (!twin.configured) {
-    return "Skipped — TWIN_NODE_* env vars are not configured.";
+    return "Skipped — TWIN_NODE_* env vars not set.";
   }
   const n = twin.notify;
   if (!n) return "Not attempted.";
   if (n.status === "ok") {
-    return "POST /dataspace/notify returned 201 Created. The activity log URN sits in the Location header.";
+    return "201 Created. Activity log URN in Location header.";
   }
   return "Forward failed.";
 }
@@ -757,9 +747,9 @@ function activityLogCaption(twin: TwinForwardSummary): string {
       (al.data.finalizedTasks?.length ?? 0) +
       (al.data.inErrorTasks?.length ?? 0);
     if (total === 0) {
-      return "Activity persisted under a TWIN-issued URN and re-queryable via the connector API. No downstream processors subscribe to this generic dataspace endpoint — by design — so no background tasks were dispatched. The cryptographic artefacts of interest are produced in the next two stages.";
+      return "Activity persisted; no subscribers on this generic endpoint.";
     }
-    return `Activity persisted and dispatched to ${total} downstream task${total === 1 ? "" : "s"}.`;
+    return `Activity dispatched to ${total} task${total === 1 ? "" : "s"}.`;
   }
   return "Activity log fetch failed.";
 }
@@ -769,7 +759,7 @@ function attestationCaption(twin: TwinForwardSummary): string {
   const a = twin.attestation;
   if (!a) return "Not attempted.";
   if (a.status === "ok") {
-    return "POST /attestation returned 201 Created. The fingerprint is now an immutable on-chain NFT.";
+    return "201 Created. Fingerprint is now an on-chain NFT.";
   }
   return "Attestation create failed.";
 }
@@ -777,10 +767,10 @@ function attestationCaption(twin: TwinForwardSummary): string {
 function credentialCaption(twin: TwinForwardSummary): string {
   if (!twin.configured) return "Skipped.";
   const c = twin.credential;
-  if (!c) return "Not attempted — TWIN_NODE_ADMIN_DID is unset.";
+  if (!c) return "Not attempted — TWIN_NODE_ADMIN_DID unset.";
   if (c.status === "ok") {
     const verb = c.data.verificationMethodAlreadyExisted ? "reused" : "created";
-    return `Assertion verification method ${verb}; the credential was signed with DataIntegrityProof.`;
+    return `Verification method ${verb}. Signed with DataIntegrityProof.`;
   }
   return "VC issuance failed.";
 }
