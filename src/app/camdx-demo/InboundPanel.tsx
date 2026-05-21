@@ -69,9 +69,6 @@ export function InboundPanel() {
   const resultRef = useRef<HTMLOListElement | null>(null);
 
   const simulate = useCallback(async () => {
-    // Clear any prior state immediately so the click feels real, even on
-    // warm-lambda Vercel where the previous run might still be in module
-    // memory.
     setRecord(null);
     setError(null);
     setStatus("simulating");
@@ -85,13 +82,8 @@ export function InboundPanel() {
       }
       setRecord(data);
       setStatus("idle");
-      // Scroll the timeline into view so the user is taken to the result
-      // rather than being left staring at the (now-empty) button area.
       requestAnimationFrame(() => {
-        resultRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
@@ -123,17 +115,12 @@ export function InboundPanel() {
     }
   }, []);
 
-  // No on-mount auto-fetch. On Vercel warm lambdas the inbound cache from a
-  // previous visitor's run would otherwise leak into the new page load, making
-  // it impossible to tell that a click has done anything. The empty initial
-  // state makes the "click Simulate" call-to-action unambiguous.
-
   const busy = status === "loading" || status === "simulating";
 
   return (
     <section>
       <div className="flex items-baseline justify-between">
-        <span className="label">Inbound · CamDX → TWIN</span>
+        <span className="eyebrow">Inbound · CamDX → TWIN</span>
         <span
           className="status-pill"
           data-state={record ? "ok" : status === "error" ? "error" : "skipped"}
@@ -150,233 +137,135 @@ export function InboundPanel() {
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
         <span className="channel" data-kind="simulated">
-          Simulated transport
+          <span className="label">Simulated</span>
           <span className="detail">X-Road envelope built locally</span>
         </span>
-        <span className="channel" data-kind="live">
-          Live TWIN pipeline
+        <span className="channel">
+          <span className="label">Live</span>
           <span className="detail">TWIN node · IOTA testnet</span>
         </span>
       </div>
 
-      <h2 className="mt-4 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
+      <h2 className="heading mt-6" style={{ fontSize: 32, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.012em" }}>
         CamDX delivers a record to TWIN.
       </h2>
-      <p className="mt-3 max-w-[58ch] text-[14px] leading-[1.6] text-ink-soft">
+      <p className="body-sm mt-3 max-w-[58ch]" style={{ color: "var(--color-slate-light)" }}>
         The X-Road upstream is simulated. Everything downstream is live.
       </p>
 
-      <div className="mt-7">
-        <button
-          type="button"
-          onClick={simulate}
-          disabled={busy}
-          className="btn-primary"
-        >
-          {status === "simulating" ? (
-            <>
-              <span className="block h-2.5 w-2.5 animate-pulse rounded-full bg-ochre" />
-              Simulating delivery…
-            </>
-          ) : record ? (
-            "Run a fresh simulation"
-          ) : (
-            "Simulate CamDX delivery"
-          )}
+      <div className="mt-8">
+        <button type="button" onClick={simulate} disabled={busy} className="btn-primary">
+          {status === "simulating"
+            ? "Simulating delivery…"
+            : record
+              ? "Run a fresh simulation"
+              : "Simulate CamDX delivery"}
         </button>
       </div>
 
+      <details className="mt-5 max-w-[62ch]">
+        <summary className="cursor-pointer select-none body-sm" style={{ color: "var(--color-cloud-dark)" }}>
+          Or trigger from a developer terminal
+        </summary>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <pre
+            className="font-mono text-[12px] px-3 py-2"
+            style={{
+              background: "var(--color-ivory-medium)",
+              color: "var(--color-slate-dark)",
+              border: "1px solid var(--color-cloud-light)",
+            }}
+          >
+            <span style={{ color: "var(--color-cloud-dark)" }}>$ </span>npm run simulator
+          </pre>
+          <button type="button" onClick={refresh} disabled={busy} className="btn-ghost" style={{ fontSize: 12, padding: "8px 14px" }}>
+            {status === "loading" ? "Refreshing…" : "Refresh last seen"}
+          </button>
+        </div>
+        <p className="meta-label mt-3" style={{ textTransform: "none", letterSpacing: 0, fontStyle: "italic" }}>
+          Single-process cache. Reliable on local dev; not on multi-worker deploys.
+        </p>
+      </details>
+
       {status === "simulating" && (
-        <div className="mt-6 border-l-2 border-ochre bg-paper-tint p-4 text-[13px] leading-[1.6] text-ink-soft">
-          <span className="label" style={{ color: "var(--color-ochre)" }}>
-            Working
-          </span>
-          <p className="mt-1 text-ink">
-            Notify → activity-log → credential → attestation. ~5s.
+        <div className="mt-8">
+          <span className="meta-label">Working</span>
+          <p className="body-sm mt-1.5" style={{ color: "var(--color-slate-light)" }}>
+            Notify → activity log → credential → attestation. ~5s.
           </p>
         </div>
       )}
 
-      <details className="mt-5 max-w-[62ch] text-[12px] leading-[1.6] text-ink-soft">
-        <summary className="cursor-pointer select-none text-ink-faint hover:text-ink">
-          Or trigger from a developer terminal
-        </summary>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <pre className="border border-rule-soft bg-paper-tint px-3 py-2 font-mono text-[12px] text-ink">
-            <span className="text-ink-faint">$ </span>npm run simulator
-          </pre>
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={busy}
-            className="btn-ghost"
-            style={{ fontSize: "11px", padding: "6px 12px" }}
-          >
-            {status === "loading" ? "Refreshing…" : "Refresh last seen"}
-          </button>
-          <span className="italic text-ink-faint">
-            (single-process cache; reliable on local dev, not on multi-worker
-            deploys)
-          </span>
-        </div>
-      </details>
-
       {!record && status !== "simulating" && !error && (
-        <p className="mt-8 max-w-[60ch] text-[13px] italic text-ink-soft">
+        <p className="body-sm mt-8 max-w-[60ch]" style={{ color: "var(--color-cloud-dark)", fontStyle: "italic" }}>
           Click <em>Simulate CamDX delivery</em> to run the six-stage pipeline.
         </p>
       )}
 
       {error && (
-        <div
-          role="alert"
-          className="mt-8 border-l-2 border-brick bg-paper-tint p-4 text-[13px] text-brick"
-        >
-          <span className="label" style={{ color: "var(--color-brick)" }}>
+        <div role="alert" className="mt-8">
+          <span className="meta-label" style={{ color: "var(--color-clay)" }}>
             Error
           </span>
-          <p className="mt-1 font-mono text-[12px]">{error}</p>
+          <p className="mt-1.5 font-mono text-[12px]" style={{ color: "var(--color-clay)" }}>
+            {error}
+          </p>
         </div>
       )}
 
       {record && (
-        <ol className="timeline mt-10" ref={resultRef}>
-          <Stage
-            num={1}
-            title="Envelope received"
-            state="ok"
-            channel={{
-              kind: "simulated",
-              detail: "X-Road envelope built in Node",
-            }}
-            caption="The headers below match what a Cambodian Security Server would deliver."
-          >
+        <ol className="timeline mt-12" ref={resultRef}>
+          <Stage num={1} title="Envelope received" state="ok" channel={{ kind: "simulated", detail: "X-Road envelope built in Node" }} caption="The headers below match what a Cambodian Security Server would deliver.">
             <Definitions
               entries={[
                 ["X-Road-Client", record.envelope.client],
                 ...(record.envelope.service
-                  ? ([["X-Road-Service", record.envelope.service]] as [
-                      string,
-                      string,
-                    ][])
+                  ? ([["X-Road-Service", record.envelope.service]] as [string, string][])
                   : []),
                 ["X-Road-Id", record.envelope.messageId],
                 ...(record.envelope.userId
-                  ? ([["X-Road-UserId", record.envelope.userId]] as [
-                      string,
-                      string,
-                    ][])
+                  ? ([["X-Road-UserId", record.envelope.userId]] as [string, string][])
                   : []),
                 ["Received at", record.envelope.receivedAt],
               ]}
             />
           </Stage>
 
-          <Stage
-            num={2}
-            title="Translated to W3C Activity Streams"
-            state="ok"
-            channel={{
-              kind: "live",
-              detail: "Inbound handler",
-            }}
-            caption={`type: "${String(record.activity.type)}", @context: ${formatContext(record.activity["@context"])}`}
-          >
-            <ScrollExhibit
-              label="Activity payload"
-              text={JSON.stringify(record.activity, null, 2)}
-              maxHeight={220}
-            />
+          <Stage num={2} title="Translated to W3C Activity Streams" state="ok" channel={{ kind: "live", detail: "Inbound handler" }} caption={`type: "${String(record.activity.type)}", @context: ${formatContext(record.activity["@context"])}`}>
+            <ScrollExhibit label="Activity payload" text={JSON.stringify(record.activity, null, 2)} maxHeight={220} />
           </Stage>
 
-          <Stage
-            num={3}
-            title="Forwarded to TWIN's data layer"
-            state={stageState(record.twin.configured, record.twin.notify)}
-            channel={{
-              kind: "live",
-              detail: "POST /dataspace/notify",
-            }}
-            caption={notifyCaption(record.twin)}
-          >
+          <Stage num={3} title="Forwarded to TWIN's data layer" state={stageState(record.twin.configured, record.twin.notify)} channel={{ kind: "live", detail: "POST /dataspace/notify" }} caption={notifyCaption(record.twin)}>
             {record.twin.notify?.status === "ok" && (
-              <KVStack
-                rows={[
-                  [
-                    "Activity log URN",
-                    record.twin.notify.data.activityLogId,
-                  ],
-                ]}
-              />
+              <KVStack rows={[["Activity log URN", record.twin.notify.data.activityLogId]]} />
             )}
-            {record.twin.notify?.status === "error" && (
-              <ErrorLine text={record.twin.notify.error} />
-            )}
+            {record.twin.notify?.status === "error" && <ErrorLine text={record.twin.notify.error} />}
           </Stage>
 
-          <Stage
-            num={4}
-            title="Ingestion confirmed"
-            state={stageState(record.twin.configured, record.twin.activityLog)}
-            channel={{
-              kind: "live",
-              detail: "GET /dataspace/activity-logs/:id",
-            }}
-            caption={activityLogCaption(record.twin)}
-          >
-            {record.twin.activityLog?.status === "ok" && (
-              <ActivityLogSummary entry={record.twin.activityLog.data} />
-            )}
-            {record.twin.activityLog?.status === "error" && (
-              <ErrorLine text={record.twin.activityLog.error} />
-            )}
+          <Stage num={4} title="Ingestion confirmed" state={stageState(record.twin.configured, record.twin.activityLog)} channel={{ kind: "live", detail: "GET /dataspace/activity-logs/:id" }} caption={activityLogCaption(record.twin)}>
+            {record.twin.activityLog?.status === "ok" && <ActivityLogSummary entry={record.twin.activityLog.data} />}
+            {record.twin.activityLog?.status === "error" && <ErrorLine text={record.twin.activityLog.error} />}
           </Stage>
 
-          <Stage
-            num={5}
-            title="Signed as W3C Verifiable Credential"
-            state={stageState(record.twin.configured, record.twin.credential)}
-            channel={{
-              kind: "live",
-              detail: "Ed25519 signature anchored on IOTA",
-            }}
-            caption={credentialCaption(record.twin)}
-          >
-            {record.twin.credential?.status === "ok" && (
-              <CredentialSummary data={record.twin.credential.data} />
-            )}
-            {record.twin.credential?.status === "error" && (
-              <ErrorLine text={record.twin.credential.error} />
-            )}
+          <Stage num={5} title="Signed as W3C Verifiable Credential" state={stageState(record.twin.configured, record.twin.credential)} channel={{ kind: "live", detail: "Ed25519 signature anchored on IOTA" }} caption={credentialCaption(record.twin)}>
+            {record.twin.credential?.status === "ok" && <CredentialSummary data={record.twin.credential.data} />}
+            {record.twin.credential?.status === "error" && <ErrorLine text={record.twin.credential.error} />}
           </Stage>
 
-          <Stage
-            num={6}
-            title="Anchored on IOTA"
-            state={stageState(record.twin.configured, record.twin.attestation)}
-            channel={{
-              kind: "live",
-              detail: "On-chain NFT on IOTA testnet",
-            }}
-            caption={attestationCaption(record.twin)}
-            last
-          >
-            {record.twin.attestation?.status === "ok" && (
-              <AttestationSummary
-                attestationId={record.twin.attestation.data.attestationId}
-              />
-            )}
-            {record.twin.attestation?.status === "error" && (
-              <ErrorLine text={record.twin.attestation.error} />
-            )}
+          <Stage num={6} title="Anchored on IOTA" state={stageState(record.twin.configured, record.twin.attestation)} channel={{ kind: "live", detail: "On-chain NFT on IOTA testnet" }} caption={attestationCaption(record.twin)} last>
+            {record.twin.attestation?.status === "ok" && <AttestationSummary attestationId={record.twin.attestation.data.attestationId} />}
+            {record.twin.attestation?.status === "error" && <ErrorLine text={record.twin.attestation.error} />}
           </Stage>
         </ol>
       )}
 
       {record?.note && (
-        <p className="mt-10 max-w-[58ch] border-l-2 border-ochre-soft pl-4 text-[12px] leading-[1.6] italic text-ink-soft">
+        <p
+          className="body-sm mt-12 max-w-[58ch]"
+          style={{ color: "var(--color-cloud-dark)", fontStyle: "italic", borderLeft: "2px solid var(--color-cloud-light)", paddingLeft: 16 }}
+        >
           {record.note}
         </p>
       )}
@@ -399,9 +288,6 @@ function Stage({
   title: string;
   state: StageState;
   caption?: string;
-  /** What's actually happening at this step — `live` if external systems are
-   *  touched, `simulated` if the work is local. The detail string shows what
-   *  is touched (e.g. an endpoint hostname or "pure code transformation"). */
   channel?: { kind: "live" | "simulated"; detail: string };
   children?: React.ReactNode;
   last?: boolean;
@@ -415,28 +301,24 @@ function Stage({
         animationDelay: `${num * 90}ms`,
       }}
     >
-      <div className="stage-numeral" data-state={state}>
-        {String(num).padStart(2, "0")}
-      </div>
+      <div className="stage-numeral">{String(num).padStart(2, "0")}</div>
       <div className="stage-content">
-        <div className="flex items-baseline justify-between gap-4">
-          <h3 className="font-display text-[22px] leading-[1.15] tracking-[-0.005em] text-ink">
-            {title}
-          </h3>
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <h3 className="subheading">{title}</h3>
           <span className="status-pill" data-state={state}>
             {state === "ok" ? "Ok" : state === "error" ? "Error" : "Skipped"}
           </span>
         </div>
         {channel && (
-          <div className="mt-1.5">
+          <div className="mt-2">
             <span className="channel" data-kind={channel.kind}>
-              {channel.kind === "live" ? "Live" : "Simulated"}
+              <span className="label">{channel.kind === "live" ? "Live" : "Simulated"}</span>
               <span className="detail">{channel.detail}</span>
             </span>
           </div>
         )}
         {caption && (
-          <p className="mt-1.5 text-[12.5px] italic leading-[1.55] text-ink-soft">
+          <p className="body-sm mt-2" style={{ color: "var(--color-slate-light)" }}>
             {caption}
           </p>
         )}
@@ -452,27 +334,31 @@ const stageStyles = `
 .timeline::before {
   content: "";
   position: absolute;
-  left: 2.45rem;
-  top: 0.7rem;
-  bottom: 0.7rem;
+  left: 1.5rem;
+  top: 0.8rem;
+  bottom: 0.8rem;
   width: 1px;
-  background: var(--color-rule);
+  background: var(--color-cloud-light);
 }
 .stage {
   display: grid;
-  /* minmax(0, 1fr) so unbreakable content can't expand the column past the
-     parent's width (default 1fr resolves to min-content). */
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 1.75rem;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 1.5rem;
   padding-bottom: 2.5rem;
   position: relative;
 }
 .stage-last { padding-bottom: 0; }
 .stage > .stage-numeral {
-  justify-self: end;
   position: relative;
-  background: var(--color-paper);
-  padding: 0 0.3rem;
+  background: var(--color-ivory-light);
+  padding-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-cloud-dark);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  z-index: 1;
 }
 .stage > .stage-content { min-width: 0; }
 @keyframes stage-in {
@@ -499,10 +385,12 @@ function Definitions({ entries }: { entries: [string, string][] }) {
     <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1.5 text-[12.5px]">
       {entries.map(([k, v]) => (
         <div key={k} className="contents">
-          <dt className="tnum font-mono text-ink-soft">{k}</dt>
+          <dt className="tnum font-mono" style={{ color: "var(--color-cloud-dark)" }}>
+            {k}
+          </dt>
           <dd
-            className="min-w-0 font-mono text-ink"
-            style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+            className="min-w-0 font-mono"
+            style={{ overflowWrap: "anywhere", wordBreak: "break-all", color: "var(--color-slate-dark)" }}
           >
             {v}
           </dd>
@@ -517,10 +405,10 @@ function KVStack({ rows }: { rows: [string, string][] }) {
     <div className="min-w-0 space-y-3">
       {rows.map(([label, value]) => (
         <div key={label} className="min-w-0">
-          <div className="label">{label}</div>
+          <div className="meta-label">{label}</div>
           <div
-            className="mt-1 font-mono text-[12px] leading-[1.55] text-ink"
-            style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+            className="mt-1 font-mono text-[12px] leading-[1.55]"
+            style={{ overflowWrap: "anywhere", wordBreak: "break-all", color: "var(--color-slate-dark)" }}
           >
             {value}
           </div>
@@ -539,20 +427,19 @@ function ScrollExhibit({
   label: string;
   text: string;
   maxHeight: number;
-  /** When true, wrap unbreakable strings (good for base64/JWT).
-      When false (default), preserve `pre` whitespace and scroll horizontally. */
   wrap?: boolean;
 }) {
   return (
     <div className="min-w-0">
-      <div className="label">{label}</div>
+      <div className="meta-label">{label}</div>
       <pre
-        className="mt-1.5 w-full max-w-full overflow-auto border border-rule-soft bg-paper-tint p-3 font-mono text-[11.5px] leading-[1.55] text-ink"
+        className="mt-1.5 w-full max-w-full overflow-auto font-mono text-[11.5px] leading-[1.55] p-3"
         style={{
           maxHeight: `${maxHeight}px`,
-          ...(wrap
-            ? { whiteSpace: "pre-wrap", overflowWrap: "anywhere" }
-            : {}),
+          background: "var(--color-ivory-medium)",
+          color: "var(--color-slate-dark)",
+          border: "1px solid var(--color-cloud-light)",
+          ...(wrap ? { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } : {}),
         }}
       >
         {text}
@@ -563,8 +450,17 @@ function ScrollExhibit({
 
 function ErrorLine({ text }: { text: string }) {
   return (
-    <div className="border-l-2 border-brick bg-paper-tint p-3 text-[12px] leading-[1.5] text-brick">
-      <pre className="overflow-x-auto whitespace-pre-wrap font-mono">{text}</pre>
+    <div
+      className="font-mono text-[12px] leading-[1.5] p-3"
+      style={{
+        color: "var(--color-clay)",
+        background: "var(--color-ivory-medium)",
+        borderLeft: "2px solid var(--color-clay)",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-all",
+      }}
+    >
+      {text}
     </div>
   );
 }
@@ -587,17 +483,30 @@ function ActivityLogSummary({ entry }: { entry: ActivityLogEntry }) {
         ]}
       />
       <div>
-        <div className="label">Tasks</div>
+        <div className="meta-label">Tasks</div>
         <div className="mt-2 grid grid-cols-4 gap-3">
           {counts.map(([k, v]) => (
             <div
               key={k}
-              className="border border-rule-soft bg-paper-tint p-2.5 text-center"
+              className="p-3 text-center"
+              style={{ background: "var(--color-ivory-medium)" }}
             >
-              <div className="font-display text-[22px] leading-none text-ink tnum">
+              <div
+                className="font-sans tnum"
+                style={{ fontSize: 22, fontWeight: 600, lineHeight: 1, color: "var(--color-slate-dark)" }}
+              >
                 {v}
               </div>
-              <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+              <div
+                className="mt-1.5"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  color: "var(--color-cloud-dark)",
+                }}
+              >
                 {k}
               </div>
             </div>
@@ -621,10 +530,10 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
   return (
     <div className="space-y-5">
       <div className="min-w-0">
-        <div className="label">Issuer DID</div>
+        <div className="meta-label">Issuer DID</div>
         <div
-          className="mt-1.5 font-mono text-[12px] text-ink"
-          style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+          className="mt-1.5 font-mono text-[12px]"
+          style={{ overflowWrap: "anywhere", wordBreak: "break-all", color: "var(--color-slate-dark)" }}
         >
           {issuer || "—"}
         </div>
@@ -633,13 +542,9 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
             href={explorerObjectUrl(issuerObjectId)}
             target="_blank"
             rel="noopener noreferrer"
-            className="ext-link mt-2 text-[12px]"
+            className="link mt-2 inline-block text-[12px]"
           >
-            View on IOTA Rebased Explorer{" "}
-            <span className="font-mono text-[10px] text-ink-faint">
-              ({issuerObjectId.slice(0, 12)}…)
-            </span>{" "}
-            <span className="arrow">↗</span>
+            View on IOTA explorer ↗
           </a>
         )}
       </div>
@@ -652,14 +557,23 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
       />
 
       <div className="min-w-0">
-        <div className="label">Proof</div>
+        <div className="meta-label">Proof</div>
         <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1 font-mono text-[12px]">
-          <dt className="text-ink-soft">cryptosuite</dt>
-          <dd className="text-ochre">{cryptosuite}</dd>
-          <dt className="text-ink-soft">verificationMethod</dt>
+          <dt style={{ color: "var(--color-cloud-dark)" }}>cryptosuite</dt>
           <dd
-            className="min-w-0 text-ink"
-            style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+            style={{
+              color: "var(--color-slate-dark)",
+              textDecoration: "underline",
+              textDecorationThickness: "2px",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            {cryptosuite}
+          </dd>
+          <dt style={{ color: "var(--color-cloud-dark)" }}>verificationMethod</dt>
+          <dd
+            className="min-w-0"
+            style={{ overflowWrap: "anywhere", wordBreak: "break-all", color: "var(--color-slate-dark)" }}
           >
             {verificationMethod}
           </dd>
@@ -679,35 +593,47 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
 function AttestationSummary({ attestationId }: { attestationId: string }) {
   const objectId = attestationUrnToObjectId(attestationId);
   return (
-    <div className="min-w-0 space-y-3">
+    <div className="min-w-0 space-y-5">
       <div className="min-w-0">
-        <div className="label">Attestation URN</div>
+        <div className="meta-label">Attestation URN</div>
         <div
-          className="mt-1.5 font-mono text-[12px] leading-[1.55] text-ink"
-          style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+          className="mt-1.5 font-mono text-[12px] leading-[1.55]"
+          style={{ overflowWrap: "anywhere", wordBreak: "break-all", color: "var(--color-slate-dark)" }}
         >
           {attestationId}
         </div>
       </div>
+
       {objectId && (
-        <div className="verify-callout">
-          <div className="min-w-0">
-            <div className="label-row">
-              <span className="moss-dot" />
-              <span className="lead">Verify independently</span>
+        <div className="card-dark">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_max-content] sm:items-end">
+            <div>
+              <span
+                className="meta-label"
+                style={{ color: "var(--color-ivory-dark)" }}
+              >
+                Verify independently
+              </span>
+              <h4 className="display-serif mt-2">
+                Audit this NFT on IOTA.
+              </h4>
+              <p
+                className="body-sm mt-3 max-w-[40ch]"
+                style={{ color: "var(--color-ivory-dark)" }}
+              >
+                The object id resolves on the public explorer. Anyone can
+                verify the on-chain record without our cooperation.
+              </p>
             </div>
-            <p className="subject">
-              Audit this NFT on the IOTA explorer.
-            </p>
+            <a
+              href={explorerObjectUrl(objectId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-on-dark"
+            >
+              Open explorer ↗
+            </a>
           </div>
-          <a
-            href={explorerObjectUrl(objectId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="cta"
-          >
-            Open <span className="arrow">↗</span>
-          </a>
         </div>
       )}
     </div>
@@ -723,14 +649,10 @@ function formatContext(ctx: unknown): string {
 }
 
 function notifyCaption(twin: TwinForwardSummary): string {
-  if (!twin.configured) {
-    return "Skipped — TWIN node not configured.";
-  }
+  if (!twin.configured) return "Skipped — TWIN node not configured.";
   const n = twin.notify;
   if (!n) return "Not attempted.";
-  if (n.status === "ok") {
-    return "201 Created. Activity log URN in Location header.";
-  }
+  if (n.status === "ok") return "201 Created. Activity log URN in Location header.";
   return "Forward failed.";
 }
 
@@ -744,9 +666,7 @@ function activityLogCaption(twin: TwinForwardSummary): string {
       (al.data.runningTasks?.length ?? 0) +
       (al.data.finalizedTasks?.length ?? 0) +
       (al.data.inErrorTasks?.length ?? 0);
-    if (total === 0) {
-      return "Activity persisted; no subscribers on this generic endpoint.";
-    }
+    if (total === 0) return "Activity persisted; no subscribers on this generic endpoint.";
     return `Activity dispatched to ${total} task${total === 1 ? "" : "s"}.`;
   }
   return "Activity log fetch failed.";
@@ -756,9 +676,7 @@ function attestationCaption(twin: TwinForwardSummary): string {
   if (!twin.configured) return "Skipped.";
   const a = twin.attestation;
   if (!a) return "Not attempted.";
-  if (a.status === "ok") {
-    return "201 Created. Fingerprint is now an on-chain NFT.";
-  }
+  if (a.status === "ok") return "201 Created. Fingerprint is now an on-chain NFT.";
   return "Attestation create failed.";
 }
 

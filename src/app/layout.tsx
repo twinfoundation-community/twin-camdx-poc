@@ -1,25 +1,30 @@
 import type { Metadata } from "next";
-import { Fraunces, Public_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, Lora, JetBrains_Mono } from "next/font/google";
 import "../styles/global.css";
 
-const fraunces = Fraunces({
+// Anthropic Sans substitute. Used for all UI chrome, headlines on light
+// surfaces, body copy.
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-display",
-  axes: ["opsz", "SOFT"],
+  variable: "--font-sans",
 });
 
-const publicSans = Public_Sans({
+// Anthropic Serif substitute. Used ONLY inside dark editorial cards per spec.
+const lora = Lora({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-body",
+  variable: "--font-serif",
+  weight: ["400", "500", "600"],
 });
 
+// Anthropic Mono substitute. Used for technical metadata labels (DATE,
+// CATEGORY, structured data within editorial layout).
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-mono",
-  weight: ["400", "500", "600"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -36,9 +41,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${publicSans.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${lora.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-screen bg-paper text-ink antialiased">
+      <body className="min-h-screen bg-ivory-light text-slate-dark antialiased">
         {children}
       </body>
     </html>

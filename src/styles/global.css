@@ -1,356 +1,350 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss";
 
-/* ─── Design tokens — Editorial Diplomatic Brief ─────────────────────────── */
+/* ─── Design tokens — Anthropic (Research journal printed on warm stone) ─── */
 @theme {
-  /* Palette: parchment paper, ink, deep diplomatic navy, muted ochre, moss */
-  --color-paper: #f4efe5;
-  --color-paper-dim: #e9e1cd;
-  --color-paper-tint: #faf6ec;
-  --color-ink: #1b1814;
-  --color-ink-soft: #4a443c;
-  --color-ink-faint: #8a8175;
-  --color-rule: #c8bda5;
-  --color-rule-soft: #ddd3bb;
-  --color-navy: #1b2845;
-  --color-navy-soft: #364568;
-  --color-ochre: #a56a2d;
-  --color-ochre-soft: #c99c5e;
-  --color-moss: #4d6b4b;
-  --color-brick: #8b2c2c;
+  /* Surfaces (ordered light → dark) */
+  --color-ivory-light: #faf9f5;
+  --color-ivory-medium: #f0eee6;
+  --color-ivory-dark: #e8e6dc;
+  --color-oat: #e3dacc;
+
+  /* Achromatic text + chrome (light → dark) */
+  --color-cloud-medium: #b0aea5;
+  --color-cloud-light: #d1cfc5;
+  --color-cloud-dark: #87867f;
+  --color-slate-light: #5e5d59;
+  --color-slate-medium: #3d3d3a;
+  --color-slate-dark: #141413;
+
+  /* Accents — used sparingly. Clay is the single warm CTA accent;
+     Ember is its pressed/hover state; Olive/Sky/Fig/Cactus are
+     categorical tag variants reserved for differentiation. */
+  --color-clay: #d97757;
+  --color-accent-ember: #c6613f;
+  --color-olive: #788c5d;
+  --color-sky: #6a9bcc;
+  --color-fig: #c46686;
+  --color-cactus: #bcd1ca;
 
   /* Type stack */
-  --font-display: var(--font-display), "Iowan Old Style", "Apple Garamond",
-    Georgia, serif;
-  --font-body: var(--font-body), "Helvetica Neue", system-ui, sans-serif;
-  --font-mono: var(--font-mono), "SF Mono", Consolas, monospace;
+  --font-sans: var(--font-sans), "Inter", ui-sans-serif, system-ui,
+    -apple-system, sans-serif;
+  --font-serif: var(--font-serif), "Lora", ui-serif, Georgia, Cambria,
+    "Times New Roman", Times, serif;
+  --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, monospace;
 }
 
 @layer base {
   html {
-    font-family: var(--font-body);
-    font-feature-settings: "ss01", "cv11";
+    font-family: var(--font-sans);
+    font-feature-settings: "kern" 1;
     scroll-behavior: smooth;
-    color: var(--color-ink);
+    color: var(--color-slate-dark);
   }
 
   body {
-    /* Subtle paper grain so the background isn't a flat fill */
-    background-color: var(--color-paper);
-    background-image:
-      radial-gradient(
-        ellipse at 12% -8%,
-        rgba(165, 106, 45, 0.08),
-        transparent 55%
-      ),
-      radial-gradient(
-        ellipse at 88% 110%,
-        rgba(27, 40, 69, 0.06),
-        transparent 60%
-      ),
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
-    background-attachment: fixed, fixed, fixed;
-    background-size: 100% 100%, 100% 100%, 240px 240px;
+    background-color: var(--color-ivory-light);
   }
 
   ::selection {
-    background: var(--color-navy);
-    color: var(--color-paper-tint);
+    background: var(--color-slate-dark);
+    color: var(--color-ivory-light);
   }
 
-  /* Tabular numerals everywhere so timestamps and counts align in columns */
   .tnum {
     font-variant-numeric: tabular-nums;
   }
 }
 
 @layer components {
-  /* Section label — small caps, hairline-spaced, used on Exhibit headers */
-  .label {
-    font-family: var(--font-body);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ink-soft);
+  /* ─── Typography presets ─────────────────────────────────────────────── */
+
+  /* Display headlines on LIGHT surfaces — Inter 700 with tight tracking.
+     The signature underline emphasis is applied via the .emphasis span. */
+  .display {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-slate-dark);
+  }
+  @media (max-width: 768px) {
+    .display {
+      font-size: 40px;
+    }
+  }
+  .emphasis {
+    text-decoration: underline;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 4px;
+    text-decoration-skip-ink: none;
   }
 
-  /* Cartouche — the small bracketed reference tags (e.g. "EXHIBIT A") */
-  .cartouche {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    color: var(--color-navy);
-    padding: 3px 9px;
-    border: 1px solid var(--color-navy);
-    border-radius: 1px;
-    text-transform: uppercase;
-    display: inline-block;
-  }
-
-  /* Hairline ornamental divider with a centered diamond mark */
-  .rule-ornament {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .rule-ornament::before,
-  .rule-ornament::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--color-rule);
-  }
-  .rule-ornament .mark {
-    width: 7px;
-    height: 7px;
-    transform: rotate(45deg);
-    background: var(--color-navy);
-  }
-
-  /* Display serial number used in the timeline margin */
-  .stage-numeral {
-    font-family: var(--font-display);
-    font-feature-settings: "lnum", "ss01";
+  /* Display headlines on DARK editorial cards — Lora serif at large size.
+     This is the only place Anthropic permits the serif at display scale. */
+  .display-serif {
+    font-family: var(--font-serif);
     font-weight: 400;
-    font-style: italic;
-    font-size: 36px;
-    line-height: 1;
-    color: var(--color-ochre);
-    font-variant-numeric: lining-nums;
-  }
-  .stage-numeral[data-state="skipped"] {
-    color: var(--color-ink-faint);
-  }
-  .stage-numeral[data-state="error"] {
-    color: var(--color-brick);
+    font-size: 40px;
+    line-height: 1.1;
+    letter-spacing: -0.005em;
+    color: var(--color-ivory-light);
   }
 
-  /* Channel badge — declares whether a stage / panel touches live external
-     systems or is simulated locally. Sits beside the status pill, smaller. */
-  .channel {
+  .heading {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 1.4;
+    color: var(--color-slate-dark);
+  }
+
+  .subheading {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--color-slate-dark);
+  }
+
+  .body-lg {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--color-slate-dark);
+    letter-spacing: -0.002em;
+  }
+
+  .body-sm {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--color-slate-dark);
+  }
+
+  /* Metadata label — uppercase mono, the signature "structured data
+     within editorial layout" pattern. */
+  .meta-label {
+    font-family: var(--font-mono);
+    font-weight: 400;
+    font-size: 11px;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-cloud-dark);
+  }
+
+  /* Section eyebrow — plain Inter caps, slightly larger than meta-label. */
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-slate-light);
+  }
+
+  /* ─── Buttons ────────────────────────────────────────────────────────── */
+
+  /* Primary CTA — slate fill, ivory text, the asymmetric corner signature
+     (flat top, rounded bottom) reserved for the main call to action. */
+  .btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    font-family: var(--font-body);
-    font-size: 10px;
+    gap: 8px;
+    background: var(--color-slate-dark);
+    color: var(--color-ivory-light);
+    font-family: var(--font-sans);
     font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-ink-soft);
+    font-size: 15px;
+    line-height: 1.2;
+    padding: 12px 24px;
+    border: 1px solid var(--color-slate-dark);
+    border-radius: 0px 0px 8px 8px;
+    cursor: pointer;
+    transition: background 120ms ease;
   }
-  .channel::before {
-    content: "";
-    display: inline-block;
-    width: 5px;
-    height: 5px;
-    background: currentColor;
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-slate-medium);
+    border-color: var(--color-slate-medium);
   }
-  .channel[data-kind="live"] {
-    color: var(--color-moss);
-  }
-  .channel[data-kind="simulated"] {
-    color: var(--color-ochre);
-  }
-  .channel .detail {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    font-weight: 400;
-    letter-spacing: 0;
-    text-transform: none;
-    color: var(--color-ink-soft);
+  .btn-primary:disabled {
+    background: var(--color-cloud-dark);
+    border-color: var(--color-cloud-dark);
+    cursor: not-allowed;
   }
 
-  /* Verify-on-chain callout — gives the real on-chain artefact spotlight
-     treatment instead of a small inline link. */
-  .verify-callout {
-    display: flex;
+  /* Ghost button — transparent fill, slate border, 0px radius. The default
+     secondary action. */
+  .btn-ghost {
+    display: inline-flex;
     align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--color-slate-dark);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.2;
+    padding: 10px 20px;
+    border: 1px solid var(--color-slate-dark);
+    border-radius: 0px;
+    cursor: pointer;
+    transition:
+      background 120ms ease,
+      color 120ms ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-slate-dark);
+    color: var(--color-ivory-light);
+  }
+  .btn-ghost:disabled {
+    color: var(--color-cloud-medium);
+    border-color: var(--color-cloud-medium);
+    cursor: not-allowed;
+  }
+
+  /* Button rendered on a DARK editorial card — ivory fill, slate text. */
+  .btn-on-dark {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-ivory-light);
+    color: var(--color-slate-dark);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.2;
+    padding: 12px 24px;
+    border: 1px solid var(--color-ivory-light);
+    border-radius: 0px 0px 8px 8px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 120ms ease;
+  }
+  .btn-on-dark:hover {
+    background: var(--color-ivory-medium);
+    border-color: var(--color-ivory-medium);
+  }
+
+  /* ─── Cards & surfaces ───────────────────────────────────────────────── */
+
+  /* Light card — ivory-medium surface, 8px radius, no shadow ever.
+     Surface contrast is the only depth signal in this system. */
+  .card-light {
+    background: var(--color-ivory-medium);
+    border-radius: 8px;
+    padding: 28px;
+  }
+
+  /* Dark editorial card — the dramatic broadsheet moment. Used sparingly
+     (one per major section). */
+  .card-dark {
+    background: var(--color-slate-dark);
+    border-radius: 24px;
+    padding: 32px;
+    color: var(--color-ivory-light);
+  }
+
+  /* Inline exhibit — for wire / JSON / structured technical content.
+     Subdued surface, no border, only inset hairline. */
+  .exhibit {
+    background: var(--color-ivory-light);
+    border: 1px solid var(--color-cloud-light);
+    border-radius: 0px;
+  }
+  .exhibit-head {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-cloud-light);
+    background: var(--color-ivory-medium);
+    display: flex;
+    align-items: baseline;
     justify-content: space-between;
     gap: 12px;
-    background: var(--color-paper-tint);
-    border: 1px solid var(--color-moss);
-    padding: 12px 16px;
   }
-  .verify-callout .label-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .verify-callout .moss-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: var(--color-moss);
-  }
-  .verify-callout .lead {
-    font-family: var(--font-body);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-moss);
-  }
-  .verify-callout .subject {
-    margin-top: 2px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--color-ink);
-  }
-  .verify-callout .cta {
-    flex-shrink: 0;
-    font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--color-navy);
-    border-bottom: 1px solid var(--color-navy);
-    padding-bottom: 1px;
-    text-decoration: none;
-    transition:
-      color 120ms ease,
-      border-color 120ms ease;
-  }
-  .verify-callout .cta:hover {
-    color: var(--color-ochre);
-    border-bottom-color: var(--color-ochre);
-  }
-  .verify-callout .cta .arrow {
-    font-family: var(--font-mono);
-    margin-left: 4px;
+  .exhibit-body {
+    padding: 18px 18px 22px;
   }
 
-  /* Status pill — used inside stage headers */
+  /* ─── Status & channel indicators (achromatic by default) ────────────── */
+
   .status-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-family: var(--font-body);
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
+    color: var(--color-slate-dark);
+  }
+  .status-pill[data-state="ok"] {
+    color: var(--color-slate-dark);
+  }
+  .status-pill[data-state="error"] {
+    color: var(--color-clay);
+  }
+  .status-pill[data-state="skipped"] {
+    color: var(--color-cloud-dark);
   }
   .status-pill::before {
     content: "";
     display: inline-block;
     width: 6px;
     height: 6px;
-    border-radius: 999px;
     background: currentColor;
   }
-  .status-pill[data-state="ok"] {
-    color: var(--color-moss);
-  }
-  .status-pill[data-state="error"] {
-    color: var(--color-brick);
-  }
-  .status-pill[data-state="skipped"] {
-    color: var(--color-ink-faint);
-  }
 
-  /* Primary action button — slab navy with ochre indicator hairline */
-  .btn-primary {
-    position: relative;
+  /* Channel badge — declares "Live" vs "Simulated" via a small marker
+     plus a mono detail caption. No color. */
+  .channel {
     display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--color-navy);
-    color: var(--color-paper-tint);
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    padding: 12px 22px;
-    border: 0;
-    cursor: pointer;
-    transition: background 120ms ease;
-  }
-  .btn-primary::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: -3px;
-    width: 100%;
-    height: 1px;
-    background: var(--color-ochre);
-  }
-  .btn-primary:hover {
-    background: var(--color-navy-soft);
-  }
-  .btn-primary:disabled {
-    background: var(--color-ink-soft);
-    cursor: not-allowed;
-  }
-
-  .btn-ghost {
-    display: inline-flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
-    background: transparent;
-    color: var(--color-ink);
-    font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 9px 16px;
-    border: 1px solid var(--color-ink);
-    cursor: pointer;
-    transition:
-      background 120ms ease,
-      color 120ms ease;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-slate-light);
   }
-  .btn-ghost:hover {
-    background: var(--color-ink);
-    color: var(--color-paper-tint);
-  }
-  .btn-ghost:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* Exhibit frame — used to box request/response wires, log entries, etc. */
-  .exhibit {
-    background: var(--color-paper-tint);
-    border: 1px solid var(--color-rule);
-  }
-  .exhibit-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--color-rule);
-    background: var(--color-paper-dim);
-  }
-  .exhibit-body {
-    padding: 16px 18px;
-  }
-
-  /* External-link inline indicator */
-  .ext-link {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    color: var(--color-navy);
-    text-decoration: none;
-    border-bottom: 1px solid var(--color-navy);
-    padding-bottom: 1px;
+  .channel .label {
+    color: var(--color-slate-dark);
     font-weight: 500;
+  }
+  .channel[data-kind="simulated"] .label {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+  .channel .detail {
+    color: var(--color-cloud-dark);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* Link with underline-as-accent (the Anthropic emphasis mechanic) */
+  .link {
+    color: var(--color-slate-dark);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
     transition: color 120ms ease;
   }
-  .ext-link:hover {
-    color: var(--color-ochre);
-    border-bottom-color: var(--color-ochre);
-  }
-  .ext-link .arrow {
-    font-family: var(--font-mono);
-    font-size: 0.85em;
+  .link:hover {
+    color: var(--color-clay);
   }
 }
 
 @layer utilities {
-  /* Subtle staggered fade-up on initial mount.
-     Each child gets --d N from inline style for sequencing. */
   .fade-in-stack > * {
     opacity: 0;
     transform: translateY(8px);

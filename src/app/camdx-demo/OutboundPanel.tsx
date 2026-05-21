@@ -23,7 +23,6 @@ export function OutboundPanel() {
   const [loading, setLoading] = useState(false);
 
   async function call() {
-    // Clear any prior state immediately so the click feels real.
     setResult(null);
     setError(null);
     setLoading(true);
@@ -45,7 +44,7 @@ export function OutboundPanel() {
   return (
     <section>
       <div className="flex items-baseline justify-between">
-        <span className="label">Outbound · TWIN → CamDX</span>
+        <span className="eyebrow">Outbound · TWIN → CamDX</span>
         <span
           className="status-pill"
           data-state={result ? "ok" : error ? "error" : "skipped"}
@@ -55,67 +54,52 @@ export function OutboundPanel() {
       </div>
 
       <div className="mt-3">
-        <span className="channel" data-kind="live">
-          Live
+        <span className="channel">
+          <span className="label">Live</span>
           <span className="detail">public X-Road Playground</span>
         </span>
       </div>
 
-      <h2 className="mt-4 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
+      <h2 className="heading mt-6" style={{ fontSize: 32, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.012em" }}>
         TWIN initiates an X-Road call.
       </h2>
-      <p className="mt-3 max-w-[42ch] text-[14px] leading-[1.6] text-ink-soft">
+      <p className="body-sm mt-3 max-w-[42ch]" style={{ color: "var(--color-slate-light)" }}>
         Our adaptor opens an X-Road REST gateway request to the public
         Playground using the same protocol Cambodia uses.
       </p>
 
-      <div className="mt-7">
-        <button
-          type="button"
-          onClick={call}
-          disabled={loading}
-          className="btn-primary"
-        >
-          {loading ? (
-            <>
-              <span className="block h-2.5 w-2.5 animate-pulse rounded-full bg-ochre" />
-              Calling…
-            </>
-          ) : result ? (
-            "Run the call again"
-          ) : (
-            "Execute X-Road call"
-          )}
+      <div className="mt-8">
+        <button type="button" onClick={call} disabled={loading} className="btn-primary">
+          {loading ? "Calling…" : result ? "Run the call again" : "Execute X-Road call"}
         </button>
       </div>
 
       {loading && (
-        <div className="mt-6 border-l-2 border-ochre bg-paper-tint p-4 text-[13px] leading-[1.6] text-ink-soft">
-          <span className="label" style={{ color: "var(--color-ochre)" }}>
-            Working
-          </span>
-          <p className="mt-1 text-ink">Opening the X-Road gateway.</p>
+        <div className="mt-6">
+          <span className="meta-label">Working</span>
+          <p className="body-sm mt-1.5" style={{ color: "var(--color-slate-light)" }}>
+            Opening the X-Road gateway.
+          </p>
         </div>
       )}
 
       {error && (
-        <div
-          role="alert"
-          className="mt-7 border-l-2 border-brick bg-paper-tint p-4 text-[13px] text-brick"
-        >
-          <span className="label" style={{ color: "var(--color-brick)" }}>
+        <div role="alert" className="mt-6">
+          <span className="meta-label" style={{ color: "var(--color-clay)" }}>
             Error
           </span>
-          <p className="mt-1 font-mono text-[12px]">{error}</p>
+          <p className="mt-1.5 font-mono text-[12px]" style={{ color: "var(--color-clay)" }}>
+            {error}
+          </p>
         </div>
       )}
 
       {result && (
-        <div className="mt-8 space-y-6">
+        <div className="mt-10 space-y-6">
           <Exhibit
             title="Outgoing wire"
             badge={result.request.method}
-            badgeTone="navy"
+            badgeTone="default"
           >
             <KVRow label="URL" value={result.request.url} />
             <HeaderTable headers={result.request.headers} />
@@ -124,7 +108,7 @@ export function OutboundPanel() {
           <Exhibit
             title="Returning wire"
             badge={`${result.response.status} ${result.response.statusText}`}
-            badgeTone={result.response.status < 300 ? "moss" : "brick"}
+            badgeTone={result.response.status < 300 ? "default" : "error"}
           >
             <HeaderTable
               headers={result.response.headers}
@@ -146,22 +130,16 @@ function Exhibit({
 }: {
   title: string;
   badge: string;
-  badgeTone: "navy" | "moss" | "brick";
+  badgeTone: "default" | "error";
   children: React.ReactNode;
 }) {
-  const colorVar = {
-    navy: "var(--color-navy)",
-    moss: "var(--color-moss)",
-    brick: "var(--color-brick)",
-  }[badgeTone];
+  const badgeColor =
+    badgeTone === "error" ? "var(--color-clay)" : "var(--color-slate-dark)";
   return (
     <div className="exhibit">
       <div className="exhibit-head">
-        <span className="label">{title}</span>
-        <span
-          className="font-mono text-[11px] font-semibold tracking-wider"
-          style={{ color: colorVar }}
-        >
+        <span className="meta-label">{title}</span>
+        <span className="font-mono text-[11px] font-medium tracking-wider" style={{ color: badgeColor }}>
           {badge}
         </span>
       </div>
@@ -173,10 +151,10 @@ function Exhibit({
 function KVRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <div className="label">{label}</div>
+      <div className="meta-label">{label}</div>
       <div
-        className="mt-1.5 font-mono text-[12px] leading-[1.55] text-ink"
-        style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+        className="mt-1.5 font-mono text-[12px] leading-[1.55]"
+        style={{ overflowWrap: "anywhere", wordBreak: "break-all", color: "var(--color-slate-dark)" }}
       >
         {value}
       </div>
@@ -193,8 +171,8 @@ function HeaderTable({
 }) {
   return (
     <div className="min-w-0">
-      <div className="label">Headers</div>
-      <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-5 gap-y-1 font-mono text-[12px]">
+      <div className="meta-label">Headers</div>
+      <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-5 gap-y-1.5 font-mono text-[12px]">
         {Object.entries(headers).map(([k, v]) => {
           const isEmph =
             emphasise && k.toLowerCase().startsWith(emphasise);
@@ -203,15 +181,18 @@ function HeaderTable({
               <dt
                 className="tnum"
                 style={{
-                  color: isEmph ? "var(--color-ochre)" : "var(--color-ink-soft)",
-                  fontWeight: isEmph ? 600 : 400,
+                  color: isEmph ? "var(--color-slate-dark)" : "var(--color-cloud-dark)",
+                  fontWeight: isEmph ? 500 : 400,
+                  textDecoration: isEmph ? "underline" : "none",
+                  textDecorationThickness: "2px",
+                  textUnderlineOffset: "3px",
                 }}
               >
                 {k}
               </dt>
               <dd
-                className="min-w-0 text-ink"
-                style={{ overflowWrap: "anywhere", wordBreak: "break-all" }}
+                className="min-w-0"
+                style={{ overflowWrap: "anywhere", wordBreak: "break-all", color: "var(--color-slate-dark)" }}
               >
                 {v}
               </dd>
@@ -229,8 +210,14 @@ function BodyBlock({ body }: { body: unknown }) {
   const preview = text.length > 1200 ? text.slice(0, 1200) + "\n…" : text;
   return (
     <div className="min-w-0">
-      <div className="label">Body</div>
-      <pre className="mt-1.5 w-full max-w-full max-h-[260px] overflow-auto border border-rule-soft bg-paper p-3 font-mono text-[11.5px] leading-[1.55] text-ink">
+      <div className="meta-label">Body</div>
+      <pre
+        className="mt-1.5 w-full max-w-full max-h-[260px] overflow-auto font-mono text-[11.5px] leading-[1.55] p-3"
+        style={{
+          background: "var(--color-ivory-medium)",
+          color: "var(--color-slate-dark)",
+        }}
+      >
         {preview}
       </pre>
     </div>
