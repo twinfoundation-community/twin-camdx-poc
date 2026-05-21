@@ -45,7 +45,7 @@ export function OutboundPanel() {
   return (
     <section>
       <div className="flex items-baseline justify-between">
-        <span className="cartouche">Exhibit A · TWIN → CamDX</span>
+        <span className="label">Outbound · TWIN → CamDX</span>
         <span
           className="status-pill"
           data-state={result ? "ok" : error ? "error" : "skipped"}

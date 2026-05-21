@@ -133,7 +133,7 @@ export function InboundPanel() {
   return (
     <section>
       <div className="flex items-baseline justify-between">
-        <span className="cartouche">Exhibit B · CamDX → TWIN</span>
+        <span className="label">Inbound · CamDX → TWIN</span>
         <span
           className="status-pill"
           data-state={record ? "ok" : status === "error" ? "error" : "skipped"}
