@@ -62,9 +62,7 @@ type StageState = "ok" | "error" | "skipped";
 
 export function InboundPanel() {
   const [record, setRecord] = useState<InboundRecord | null>(null);
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "simulating" | "error"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "simulating" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const resultRef = useRef<HTMLOListElement | null>(null);
 
@@ -91,31 +89,7 @@ export function InboundPanel() {
     }
   }, []);
 
-  const refresh = useCallback(async () => {
-    setStatus("loading");
-    setError(null);
-    try {
-      const response = await fetch("/api/camdx/inbound");
-      if (response.status === 404) {
-        setRecord(null);
-        setStatus("idle");
-        return;
-      }
-      if (!response.ok) {
-        setError(`HTTP ${response.status}`);
-        setStatus("error");
-        return;
-      }
-      const data = (await response.json()) as InboundRecord;
-      setRecord(data);
-      setStatus("idle");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-      setStatus("error");
-    }
-  }, []);
-
-  const busy = status === "loading" || status === "simulating";
+  const busy = status === "simulating";
 
   return (
     <section>
@@ -128,7 +102,7 @@ export function InboundPanel() {
               ? "ok"
               : status === "error"
                 ? "error"
-                : status === "simulating" || status === "loading"
+                : status === "simulating"
                   ? "running"
                   : "skipped"
           }
@@ -137,11 +111,9 @@ export function InboundPanel() {
             ? "Delivered"
             : status === "simulating"
               ? "Simulating"
-              : status === "loading"
-                ? "Loading"
-                : status === "error"
-                  ? "Failed"
-                  : "Ready"}
+              : status === "error"
+                ? "Failed"
+                : "Ready"}
         </span>
       </div>
 
@@ -172,30 +144,6 @@ export function InboundPanel() {
               : "Simulate CamDX delivery"}
         </button>
       </div>
-
-      <details className="mt-5 max-w-[62ch]">
-        <summary className="cursor-pointer select-none body-sm" style={{ color: "var(--color-cloud-dark)" }}>
-          Or trigger from a developer terminal
-        </summary>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <pre
-            className="font-mono text-[12px] px-3 py-2"
-            style={{
-              background: "var(--color-ivory-medium)",
-              color: "var(--color-slate-dark)",
-              border: "1px solid var(--color-cloud-light)",
-            }}
-          >
-            <span style={{ color: "var(--color-cloud-dark)" }}>$ </span>npm run simulator
-          </pre>
-          <button type="button" onClick={refresh} disabled={busy} className="btn-ghost" style={{ fontSize: 12, padding: "8px 14px" }}>
-            {status === "loading" ? "Refreshing…" : "Refresh last seen"}
-          </button>
-        </div>
-        <p className="meta-label mt-3" style={{ textTransform: "none", letterSpacing: 0, fontStyle: "italic" }}>
-          Single-process cache. Reliable on local dev; not on multi-worker deploys.
-        </p>
-      </details>
 
       {status === "simulating" && (
         <div className="mt-8">
@@ -535,6 +483,7 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
   const verificationMethod = String(proof.verificationMethod ?? "—");
   const issuer = String(vc.issuer ?? "");
   const issuerObjectId = didToObjectId(issuer);
+  const decoded = decodeJwt(data.jwt);
   return (
     <div className="space-y-5">
       <div className="min-w-0">
@@ -588,12 +537,130 @@ function CredentialSummary({ data }: { data: VerifiableCredentialData }) {
         </dl>
       </div>
 
-      <ScrollExhibit
-        label="JWT (preview)"
-        text={data.jwt.length > 240 ? `${data.jwt.slice(0, 240)}…` : data.jwt}
-        maxHeight={120}
-        wrap
-      />
+      {decoded && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ScrollExhibit
+            label="Decoded · header"
+            text={JSON.stringify(decoded.header, null, 2)}
+            maxHeight={150}
+          />
+          <ScrollExhibit
+            label="Decoded · payload"
+            text={JSON.stringify(decoded.payload, null, 2)}
+            maxHeight={150}
+          />
+        </div>
+      )}
+
+      <VerifyCredential jwt={data.jwt} />
+    </div>
+  );
+}
+
+interface DecodedJwt {
+  header: Record<string, unknown>;
+  payload: Record<string, unknown>;
+}
+
+function decodeJwt(jwt: string): DecodedJwt | null {
+  const parts = jwt.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const decode = (segment: string): Record<string, unknown> => {
+      const padded =
+        segment.replace(/-/g, "+").replace(/_/g, "/") +
+        "===".slice((segment.length + 3) % 4);
+      const text =
+        typeof atob === "function"
+          ? atob(padded)
+          : Buffer.from(padded, "base64").toString("utf8");
+      return JSON.parse(text) as Record<string, unknown>;
+    };
+    return { header: decode(parts[0] ?? ""), payload: decode(parts[1] ?? "") };
+  } catch {
+    return null;
+  }
+}
+
+interface VerifyResult {
+  revoked: boolean;
+  verifiableCredential?: Record<string, unknown>;
+}
+
+function VerifyCredential({ jwt }: { jwt: string }) {
+  const [state, setState] = useState<"idle" | "verifying" | "ok" | "error">(
+    "idle",
+  );
+  const [result, setResult] = useState<VerifyResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function verify() {
+    setState("verifying");
+    setResult(null);
+    setError(null);
+    try {
+      const response = await fetch("/api/camdx/verify-credential", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jwt }),
+      });
+      const data = (await response.json()) as VerifyResult | { error: string };
+      if (!response.ok || "error" in data) {
+        setError("error" in data ? data.error : `HTTP ${response.status}`);
+        setState("error");
+        return;
+      }
+      setResult(data);
+      setState("ok");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
+      setState("error");
+    }
+  }
+
+  return (
+    <div className="min-w-0">
+      <button
+        type="button"
+        onClick={verify}
+        disabled={state === "verifying"}
+        className="btn-ghost"
+      >
+        {state === "verifying" ? "Verifying…" : "Verify credential"}
+      </button>
+
+      {state === "ok" && result && (
+        <div className="mt-3">
+          <span
+            className="status-pill"
+            data-state={result.revoked ? "error" : "ok"}
+          >
+            {result.revoked ? "Revoked" : "Signature valid · not revoked"}
+          </span>
+          <p
+            className="body-sm mt-2"
+            style={{ color: "var(--color-slate-light)" }}
+          >
+            Kitsune verified the EdDSA signature against the issuer&apos;s
+            published verification method and checked the revocation
+            bitmap. Independent of our app.
+          </p>
+        </div>
+      )}
+
+      {state === "error" && (
+        <div className="mt-3">
+          <span className="status-pill" data-state="error">
+            Verification failed
+          </span>
+          <p
+            className="mt-2 font-mono text-[12px]"
+            style={{ color: "var(--color-clay)" }}
+          >
+            {error}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

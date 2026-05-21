@@ -221,6 +221,29 @@ export async function createCredential(input: {
   };
 }
 
+export interface VerifyCredentialResult {
+  revoked: boolean;
+  verifiableCredential?: Record<string, unknown>;
+}
+
+/**
+ * Re-verify a Verifiable Credential issued earlier. Calls Kitsune's
+ * `GET /identity/verifiable-credential/verify?jwt=...` route — the same
+ * cryptographic chain that signed the credential is asked to confirm it.
+ */
+export async function verifyCredential(
+  jwt: string,
+): Promise<VerifyCredentialResult> {
+  const client = new IdentityRestClient(await authedConfig());
+  const result = await client.verifiableCredentialVerify(jwt);
+  return {
+    revoked: result.revoked,
+    verifiableCredential: result.verifiableCredential as
+      | unknown as Record<string, unknown>
+      | undefined,
+  };
+}
+
 export interface AttestationResult {
   attestationId: string;
 }
