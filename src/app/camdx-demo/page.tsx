@@ -39,8 +39,7 @@ export default function CamdxDemoPage() {
             calls the public X-Road Playground.{" "}
             <span className="not-italic font-body text-[14px] font-semibold tracking-[0.06em] uppercase text-navy">CamDX → TWIN</span>{" "}
             is delivered by a local simulator into a live TWIN pipeline that
-            issues a real verifiable credential and anchors an NFT on the IOTA
-            Rebased testnet.
+            issues a real verifiable credential and anchors an NFT on IOTA.
           </p>
         </div>
         <aside className="col-span-12 md:col-span-3 md:border-l md:border-rule md:pl-6">
@@ -101,10 +100,8 @@ export default function CamdxDemoPage() {
         <span className="label">Notes &amp; provenance</span>
         <ol className="mt-5 space-y-3 max-w-[78ch] text-[13px] leading-[1.65] text-ink-soft">
           <Note num="i">
-            <strong className="text-ink">Outbound</strong> uses the
-            Playground&apos;s real
-            <code className="font-mono"> PLAYGROUND/COM/1234567-8/TestClient </code>
-            subsystem. Responses carry a provider-attached
+            <strong className="text-ink">Outbound</strong> uses a registered
+            Playground subsystem. Responses carry a provider-attached
             <code className="font-mono"> x-road-request-hash </code> per spec.
           </Note>
           <Note num="ii">
@@ -125,7 +122,7 @@ export default function CamdxDemoPage() {
             attestation NFT are real and verifiable on the linked explorer.
           </Note>
           <Note num="v">
-            Full runbook in <code className="font-mono">CAMDX_POC.md</code>.
+            Full runbook in the repository.
           </Note>
         </ol>
       </footer>

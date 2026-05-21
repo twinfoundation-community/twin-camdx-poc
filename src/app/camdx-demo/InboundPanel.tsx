@@ -157,9 +157,7 @@ export function InboundPanel() {
         </span>
         <span className="channel" data-kind="live">
           Live TWIN pipeline
-          <span className="detail">
-            kitsune.staging.twinnodes.com · IOTA Rebased testnet
-          </span>
+          <span className="detail">TWIN node · IOTA testnet</span>
         </span>
       </div>
 
@@ -295,11 +293,11 @@ export function InboundPanel() {
 
           <Stage
             num={3}
-            title="Forwarded to the data-space-connector"
+            title="Forwarded to TWIN's data layer"
             state={stageState(record.twin.configured, record.twin.notify)}
             channel={{
               kind: "live",
-              detail: "POST kitsune.staging.twinnodes.com/dataspace/notify",
+              detail: "POST /dataspace/notify",
             }}
             caption={notifyCaption(record.twin)}
           >
@@ -324,7 +322,7 @@ export function InboundPanel() {
             state={stageState(record.twin.configured, record.twin.activityLog)}
             channel={{
               kind: "live",
-              detail: "GET kitsune.staging.twinnodes.com/dataspace/activity-logs/:id",
+              detail: "GET /dataspace/activity-logs/:id",
             }}
             caption={activityLogCaption(record.twin)}
           >
@@ -342,7 +340,7 @@ export function InboundPanel() {
             state={stageState(record.twin.configured, record.twin.credential)}
             channel={{
               kind: "live",
-              detail: "Ed25519 signature by the admin DID on the IOTA Rebased testnet",
+              detail: "Ed25519 signature anchored on IOTA",
             }}
             caption={credentialCaption(record.twin)}
           >
@@ -356,11 +354,11 @@ export function InboundPanel() {
 
           <Stage
             num={6}
-            title="Anchored on IOTA Rebased testnet"
+            title="Anchored on IOTA"
             state={stageState(record.twin.configured, record.twin.attestation)}
             channel={{
               kind: "live",
-              detail: "On-chain NFT minted on IOTA Rebased testnet",
+              detail: "On-chain NFT on IOTA testnet",
             }}
             caption={attestationCaption(record.twin)}
             last
@@ -699,7 +697,7 @@ function AttestationSummary({ attestationId }: { attestationId: string }) {
               <span className="lead">Verify independently</span>
             </div>
             <p className="subject">
-              Audit this NFT on the IOTA Rebased explorer.
+              Audit this NFT on the IOTA explorer.
             </p>
           </div>
           <a
@@ -726,7 +724,7 @@ function formatContext(ctx: unknown): string {
 
 function notifyCaption(twin: TwinForwardSummary): string {
   if (!twin.configured) {
-    return "Skipped — TWIN_NODE_* env vars not set.";
+    return "Skipped — TWIN node not configured.";
   }
   const n = twin.notify;
   if (!n) return "Not attempted.";
@@ -767,7 +765,7 @@ function attestationCaption(twin: TwinForwardSummary): string {
 function credentialCaption(twin: TwinForwardSummary): string {
   if (!twin.configured) return "Skipped.";
   const c = twin.credential;
-  if (!c) return "Not attempted — TWIN_NODE_ADMIN_DID unset.";
+  if (!c) return "Not attempted — TWIN node not configured.";
   if (c.status === "ok") {
     const verb = c.data.verificationMethodAlreadyExisted ? "reused" : "created";
     return `Verification method ${verb}. Signed with DataIntegrityProof.`;

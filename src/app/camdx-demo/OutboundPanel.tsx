@@ -57,9 +57,7 @@ export function OutboundPanel() {
       <div className="mt-3">
         <span className="channel" data-kind="live">
           Live
-          <span className="detail">
-            testcomss01.playground.x-road.systems
-          </span>
+          <span className="detail">public X-Road Playground</span>
         </span>
       </div>
 
