@@ -20,15 +20,15 @@ export default function CamdxDemoPage() {
         </p>
       </header>
 
-      {/* Body — asymmetric two columns: outbound 5, inbound 7 */}
+      {/* Body — equal-width columns so the hero rows of both panels balance */}
       <section
-        className="mt-20 grid grid-cols-12 gap-10"
+        className="mt-20 grid grid-cols-12 gap-10 items-start"
         style={{ ["--d" as string]: 1 }}
       >
-        <div className="col-span-12 min-w-0 lg:col-span-5">
+        <div className="col-span-12 min-w-0 lg:col-span-6">
           <OutboundPanel />
         </div>
-        <div className="col-span-12 min-w-0 lg:col-span-7">
+        <div className="col-span-12 min-w-0 lg:col-span-6">
           <InboundPanel />
         </div>
       </section>

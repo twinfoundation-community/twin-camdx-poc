@@ -43,49 +43,51 @@ export function OutboundPanel() {
 
   return (
     <section>
-      <div className="flex items-baseline justify-between">
-        <span className="eyebrow">Outbound · TWIN → CamDX</span>
-        <span
-          className="status-pill"
-          data-state={
-            result
-              ? "ok"
+      <div className="flex flex-col" style={{ minHeight: 340 }}>
+        <div className="flex items-baseline justify-between">
+          <span className="eyebrow">Outbound · TWIN → CamDX</span>
+          <span
+            className="status-pill"
+            data-state={
+              result
+                ? "ok"
+                : error
+                  ? "error"
+                  : loading
+                    ? "running"
+                    : "skipped"
+            }
+          >
+            {result
+              ? "Executed"
               : error
-                ? "error"
+                ? "Failed"
                 : loading
-                  ? "running"
-                  : "skipped"
-          }
-        >
-          {result
-            ? "Executed"
-            : error
-              ? "Failed"
-              : loading
-                ? "Calling"
-                : "Ready"}
-        </span>
-      </div>
+                  ? "Calling"
+                  : "Ready"}
+          </span>
+        </div>
 
-      <div className="mt-3">
-        <span className="channel">
-          <span className="label">Live</span>
-          <span className="detail">public X-Road Playground</span>
-        </span>
-      </div>
+        <div className="mt-3">
+          <span className="channel">
+            <span className="label">Live</span>
+            <span className="detail">public X-Road Playground</span>
+          </span>
+        </div>
 
-      <h2 className="heading mt-6" style={{ fontSize: 32, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.012em" }}>
-        TWIN initiates an X-Road call.
-      </h2>
-      <p className="body-sm mt-3 max-w-[42ch]" style={{ color: "var(--color-slate-light)" }}>
-        Our adaptor opens an X-Road REST gateway request to the public
-        Playground using the same protocol Cambodia uses.
-      </p>
+        <h2 className="heading mt-6" style={{ fontSize: 32, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.012em" }}>
+          TWIN initiates an X-Road call.
+        </h2>
+        <p className="body-sm mt-3 max-w-[42ch]" style={{ color: "var(--color-slate-light)" }}>
+          Our adaptor opens an X-Road REST gateway request to the public
+          Playground using the same protocol Cambodia uses.
+        </p>
 
-      <div className="mt-8">
-        <button type="button" onClick={call} disabled={loading} className="btn-primary">
-          {loading ? "Calling…" : result ? "Run the call again" : "Execute X-Road call"}
-        </button>
+        <div style={{ marginTop: "auto", paddingTop: 32 }}>
+          <button type="button" onClick={call} disabled={loading} className="btn-primary">
+            {loading ? "Calling…" : result ? "Run the call again" : "Execute X-Road call"}
+          </button>
+        </div>
       </div>
 
       {loading && (

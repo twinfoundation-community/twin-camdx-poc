@@ -93,56 +93,74 @@ export function InboundPanel() {
 
   return (
     <section>
-      <div className="flex items-baseline justify-between">
-        <span className="eyebrow">Inbound · CamDX → TWIN</span>
-        <span
-          className="status-pill"
-          data-state={
-            record
-              ? "ok"
-              : status === "error"
-                ? "error"
-                : status === "simulating"
-                  ? "running"
-                  : "skipped"
-          }
+      <div className="flex flex-col" style={{ minHeight: 340 }}>
+        <div className="flex items-baseline justify-between">
+          <span className="eyebrow">Inbound · CamDX → TWIN</span>
+          <span
+            className="status-pill"
+            data-state={
+              record
+                ? "ok"
+                : status === "error"
+                  ? "error"
+                  : status === "simulating"
+                    ? "running"
+                    : "skipped"
+            }
+          >
+            {record
+              ? "Delivered"
+              : status === "simulating"
+                ? "Simulating"
+                : status === "error"
+                  ? "Failed"
+                  : "Ready"}
+          </span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+          <span className="channel" data-kind="simulated">
+            <span className="label">Simulated</span>
+            <span className="detail">X-Road transport</span>
+          </span>
+          <span className="channel">
+            <span className="label">Live</span>
+            <span className="detail">TWIN node · IOTA testnet</span>
+          </span>
+        </div>
+
+        <h2
+          className="heading mt-6"
+          style={{
+            fontSize: 32,
+            lineHeight: 1.15,
+            fontWeight: 600,
+            letterSpacing: "-0.012em",
+          }}
         >
-          {record
-            ? "Delivered"
-            : status === "simulating"
-              ? "Simulating"
-              : status === "error"
-                ? "Failed"
-                : "Ready"}
-        </span>
-      </div>
+          CamDX delivers a record to TWIN.
+        </h2>
+        <p
+          className="body-sm mt-3 max-w-[58ch]"
+          style={{ color: "var(--color-slate-light)" }}
+        >
+          The X-Road upstream is simulated. Everything downstream is live.
+        </p>
 
-      <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-        <span className="channel" data-kind="simulated">
-          <span className="label">Simulated</span>
-          <span className="detail">X-Road transport</span>
-        </span>
-        <span className="channel">
-          <span className="label">Live</span>
-          <span className="detail">TWIN node · IOTA testnet</span>
-        </span>
-      </div>
-
-      <h2 className="heading mt-6" style={{ fontSize: 32, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.012em" }}>
-        CamDX delivers a record to TWIN.
-      </h2>
-      <p className="body-sm mt-3 max-w-[58ch]" style={{ color: "var(--color-slate-light)" }}>
-        The X-Road upstream is simulated. Everything downstream is live.
-      </p>
-
-      <div className="mt-8">
-        <button type="button" onClick={simulate} disabled={busy} className="btn-primary">
-          {status === "simulating"
-            ? "Simulating delivery…"
-            : record
-              ? "Run a fresh simulation"
-              : "Simulate CamDX delivery"}
-        </button>
+        <div style={{ marginTop: "auto", paddingTop: 32 }}>
+          <button
+            type="button"
+            onClick={simulate}
+            disabled={busy}
+            className="btn-primary"
+          >
+            {status === "simulating"
+              ? "Simulating delivery…"
+              : record
+                ? "Run a fresh simulation"
+                : "Simulate CamDX delivery"}
+          </button>
+        </div>
       </div>
 
       {status === "simulating" && (
