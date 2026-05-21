@@ -33,12 +33,15 @@ export default function CamdxDemoPage() {
             Connecting <em className="font-display italic text-ochre">CamDX</em>{" "}
             to a TWIN node.
           </h1>
-          <p className="mt-6 max-w-[58ch] font-display text-[20px] italic leading-[1.45] text-ink-soft">
-            A bidirectional proof of concept demonstrating that a Cambodian
-            customs consignment, delivered over Cambodia&apos;s X-Road v7.7 data
-            exchange layer, can be ingested by a TWIN node, verifiably
-            credentialed, and anchored on-chain — using the same UN/CEFACT
-            supply-chain models that already power TWIN&apos;s UK pilot.
+          <p className="mt-6 max-w-[62ch] font-display text-[20px] italic leading-[1.45] text-ink-soft">
+            A bidirectional proof of concept, demonstrated as two independent
+            directions. <span className="not-italic font-body text-[14px] font-semibold tracking-[0.06em] uppercase text-navy">TWIN → CamDX</span>{" "}
+            issues a live call against the public X-Road Playground.{" "}
+            <span className="not-italic font-body text-[14px] font-semibold tracking-[0.06em] uppercase text-navy">CamDX → TWIN</span>{" "}
+            receives a simulated Cambodian customs delivery and lands it in a
+            fully live TWIN pipeline — the verifiable credential and the
+            on-chain attestation NFT are real and independently auditable on
+            the IOTA Rebased Explorer.
           </p>
         </div>
         <aside className="col-span-12 md:col-span-3 md:border-l md:border-rule md:pl-6">

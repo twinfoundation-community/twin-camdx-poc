@@ -133,7 +133,7 @@ export function InboundPanel() {
   return (
     <section>
       <div className="flex items-baseline justify-between">
-        <span className="cartouche">Exhibit B</span>
+        <span className="cartouche">Exhibit B · CamDX → TWIN</span>
         <span
           className="status-pill"
           data-state={record ? "ok" : status === "error" ? "error" : "skipped"}
@@ -150,14 +150,28 @@ export function InboundPanel() {
         </span>
       </div>
 
-      <h2 className="mt-5 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span className="channel" data-kind="simulated">
+          Simulated transport
+          <span className="detail">X-Road envelope built locally</span>
+        </span>
+        <span className="channel" data-kind="live">
+          Live TWIN pipeline
+          <span className="detail">
+            kitsune.staging.twinnodes.com · IOTA Rebased testnet
+          </span>
+        </span>
+      </div>
+
+      <h2 className="mt-4 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
         CamDX delivers a record to TWIN.
       </h2>
       <p className="mt-3 max-w-[58ch] text-[14px] leading-[1.6] text-ink-soft">
-        A simulator stands in for a Cambodian X-Road security server: it posts a
-        standard X-Road envelope to our adaptor, which translates the payload
-        into TWIN&apos;s ingestion format, forwards it on, and produces two
-        independently verifiable cryptographic artefacts.
+        The X-Road upstream is simulated locally (no Cambodian TWIN subsystem
+        is registered on a real X-Road central server yet — procedural, not
+        technical). From the moment the envelope reaches our handler, the
+        rest of the pipeline is fully live: real network calls to a hosted
+        TWIN node, real Ed25519 signature, real on-chain NFT.
       </p>
 
       <div className="mt-7">
@@ -243,7 +257,11 @@ export function InboundPanel() {
             num={1}
             title="Envelope received"
             state="ok"
-            caption="X-Road headers parsed by the inbound handler."
+            channel={{
+              kind: "simulated",
+              detail: "X-Road envelope constructed in Node, then handed to the inbound route",
+            }}
+            caption="The headers below are exactly what a Cambodian Security Server would deliver to a registered TWIN subsystem — minus the SS-to-SS mTLS, which is the part we don't yet operate."
           >
             <Definitions
               entries={[
@@ -270,6 +288,10 @@ export function InboundPanel() {
             num={2}
             title="Translated to W3C Activity Streams"
             state="ok"
+            channel={{
+              kind: "live",
+              detail: "Pure code transformation in the inbound handler",
+            }}
             caption={`Wrapped as type "${String(record.activity.type)}" with @context ${formatContext(record.activity["@context"])}.`}
           >
             <ScrollExhibit
@@ -283,6 +305,10 @@ export function InboundPanel() {
             num={3}
             title="Forwarded to the data-space-connector"
             state={stageState(record.twin.configured, record.twin.notify)}
+            channel={{
+              kind: "live",
+              detail: "POST kitsune.staging.twinnodes.com/dataspace/notify",
+            }}
             caption={notifyCaption(record.twin)}
           >
             {record.twin.notify?.status === "ok" && (
@@ -304,6 +330,10 @@ export function InboundPanel() {
             num={4}
             title="Ingestion confirmed"
             state={stageState(record.twin.configured, record.twin.activityLog)}
+            channel={{
+              kind: "live",
+              detail: "GET kitsune.staging.twinnodes.com/dataspace/activity-logs/:id",
+            }}
             caption={activityLogCaption(record.twin)}
           >
             {record.twin.activityLog?.status === "ok" && (
@@ -318,6 +348,10 @@ export function InboundPanel() {
             num={5}
             title="Signed as W3C Verifiable Credential"
             state={stageState(record.twin.configured, record.twin.credential)}
+            channel={{
+              kind: "live",
+              detail: "Ed25519 signature by the admin DID on the IOTA Rebased testnet",
+            }}
             caption={credentialCaption(record.twin)}
           >
             {record.twin.credential?.status === "ok" && (
@@ -332,6 +366,10 @@ export function InboundPanel() {
             num={6}
             title="Anchored on IOTA Rebased testnet"
             state={stageState(record.twin.configured, record.twin.attestation)}
+            channel={{
+              kind: "live",
+              detail: "On-chain NFT minted on IOTA Rebased testnet",
+            }}
             caption={attestationCaption(record.twin)}
             last
           >
@@ -363,6 +401,7 @@ function Stage({
   title,
   state,
   caption,
+  channel,
   children,
   last,
 }: {
@@ -370,6 +409,10 @@ function Stage({
   title: string;
   state: StageState;
   caption?: string;
+  /** What's actually happening at this step — `live` if external systems are
+   *  touched, `simulated` if the work is local. The detail string shows what
+   *  is touched (e.g. an endpoint hostname or "pure code transformation"). */
+  channel?: { kind: "live" | "simulated"; detail: string };
   children?: React.ReactNode;
   last?: boolean;
 }) {
@@ -394,6 +437,14 @@ function Stage({
             {state === "ok" ? "Ok" : state === "error" ? "Error" : "Skipped"}
           </span>
         </div>
+        {channel && (
+          <div className="mt-1.5">
+            <span className="channel" data-kind={channel.kind}>
+              {channel.kind === "live" ? "Live" : "Simulated"}
+              <span className="detail">{channel.detail}</span>
+            </span>
+          </div>
+        )}
         {caption && (
           <p className="mt-1.5 text-[12.5px] italic leading-[1.55] text-ink-soft">
             {caption}
@@ -649,18 +700,27 @@ function AttestationSummary({ attestationId }: { attestationId: string }) {
         </div>
       </div>
       {objectId && (
-        <a
-          href={explorerObjectUrl(objectId)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ext-link text-[12px]"
-        >
-          View NFT on IOTA Rebased Explorer{" "}
-          <span className="font-mono text-[10px] text-ink-faint">
-            ({objectId.slice(0, 12)}…)
-          </span>{" "}
-          <span className="arrow">↗</span>
-        </a>
+        <div className="verify-callout">
+          <div className="min-w-0">
+            <div className="label-row">
+              <span className="moss-dot" />
+              <span className="lead">Verify independently</span>
+            </div>
+            <p className="subject">
+              This NFT was just minted on the IOTA Rebased testnet. The object
+              id is publicly resolvable on the official explorer — anyone can
+              audit it without our cooperation.
+            </p>
+          </div>
+          <a
+            href={explorerObjectUrl(objectId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cta"
+          >
+            Open on explorer <span className="arrow">↗</span>
+          </a>
+        </div>
       )}
     </div>
   );
@@ -696,7 +756,10 @@ function activityLogCaption(twin: TwinForwardSummary): string {
       (al.data.runningTasks?.length ?? 0) +
       (al.data.finalizedTasks?.length ?? 0) +
       (al.data.inErrorTasks?.length ?? 0);
-    return `GET /dataspace/activity-logs/:id returned 200 OK with ${total} task${total === 1 ? "" : "s"} tracked.`;
+    if (total === 0) {
+      return "Activity persisted under a TWIN-issued URN and re-queryable via the connector API. No downstream processors subscribe to this generic dataspace endpoint — by design — so no background tasks were dispatched. The cryptographic artefacts of interest are produced in the next two stages.";
+    }
+    return `Activity persisted and dispatched to ${total} downstream task${total === 1 ? "" : "s"}.`;
   }
   return "Activity log fetch failed.";
 }

@@ -45,7 +45,7 @@ export function OutboundPanel() {
   return (
     <section>
       <div className="flex items-baseline justify-between">
-        <span className="cartouche">Exhibit A</span>
+        <span className="cartouche">Exhibit A · TWIN → CamDX</span>
         <span
           className="status-pill"
           data-state={result ? "ok" : error ? "error" : "skipped"}
@@ -54,13 +54,23 @@ export function OutboundPanel() {
         </span>
       </div>
 
-      <h2 className="mt-5 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
+      <div className="mt-3">
+        <span className="channel" data-kind="live">
+          Live
+          <span className="detail">
+            testcomss01.playground.x-road.systems
+          </span>
+        </span>
+      </div>
+
+      <h2 className="mt-4 font-display text-[34px] leading-[1.1] tracking-[-0.01em] text-ink">
         TWIN initiates an X-Road call.
       </h2>
       <p className="mt-3 max-w-[42ch] text-[14px] leading-[1.6] text-ink-soft">
         Our adaptor opens an X-Road REST gateway request to the public
         Playground, proving wire-level compatibility with the protocol Cambodia
-        uses for inter-agency data exchange.
+        uses for inter-agency data exchange. Every byte on this side of the
+        page travels over the real X-Road network.
       </p>
 
       <div className="mt-7">
