@@ -105,7 +105,7 @@ Click **Simulate CamDX delivery** in the right panel (or, for local terminal-dri
    - (Phase 2, once Rodrigo enables the connector) `TWIN_NODE_URL`, `TWIN_NODE_SERVICE_EMAIL`, `TWIN_NODE_SERVICE_PASSWORD`
 4. Deploy. Share the URL.
 
-The simulator runs locally only — for a remote demo, either show it via screen share, or wrap it as a Vercel cron / API route in a follow-up.
+Visitors drive the inbound flow with the **Simulate CamDX delivery** button — `POST /api/camdx/simulate` builds the X-Road envelope server-side and pipes it through the inbound handler in-process, returning the full record to the browser directly (no GET-after-POST, no multi-worker cache dependency). The `npm run simulator` CLI is retained as a secondary path for terminal-driven local development.
 
 ## Phase 2 — forwarding to Kitsune (shipped 2026-05-20)
 

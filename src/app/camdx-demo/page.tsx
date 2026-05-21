@@ -14,9 +14,9 @@ export default function CamdxDemoPage() {
         </h1>
         <p className="body-lg mt-6 max-w-[60ch]" style={{ color: "var(--color-slate-light)" }}>
           Two directions, demonstrated independently. TWIN → CamDX calls the
-          public X-Road Playground. CamDX → TWIN is delivered by a local
-          simulator into a live TWIN pipeline that issues a real verifiable
-          credential and anchors an NFT on IOTA.
+          public X-Road Playground. CamDX → TWIN feeds a simulated envelope
+          into a live TWIN pipeline that issues a real verifiable credential
+          and anchors an NFT on IOTA.
         </p>
       </header>
 

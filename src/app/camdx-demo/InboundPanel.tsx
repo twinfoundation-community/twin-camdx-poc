@@ -148,7 +148,7 @@ export function InboundPanel() {
       <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
         <span className="channel" data-kind="simulated">
           <span className="label">Simulated</span>
-          <span className="detail">X-Road envelope built locally</span>
+          <span className="detail">X-Road transport</span>
         </span>
         <span className="channel">
           <span className="label">Live</span>
@@ -225,7 +225,7 @@ export function InboundPanel() {
 
       {record && (
         <ol className="timeline mt-12" ref={resultRef}>
-          <Stage num={1} title="Envelope received" state="ok" channel={{ kind: "simulated", detail: "X-Road envelope built in Node" }} caption="The headers below match what a Cambodian Security Server would deliver.">
+          <Stage num={1} title="Envelope received" state="ok" channel={{ kind: "simulated", detail: "no real X-Road wire" }} caption="The headers below match what a Cambodian Security Server would deliver.">
             <Definitions
               entries={[
                 ["X-Road-Client", record.envelope.client],
