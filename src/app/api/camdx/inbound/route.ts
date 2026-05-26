@@ -56,7 +56,42 @@ const cache = {
 };
 
 const PLACEHOLDER_ACTOR_DID = "did:iota:testnet:0xCAMDX_PROVIDER_PLACEHOLDER";
-const ACTIVITY_LOG_SETTLE_MS = 1500;
+// Poll the activity log until tasks reach a terminal state (no pending/running,
+// or any errored task), with a hard ceiling so a stuck handler can't hang the
+// inbound request. Values are conservative: Kitsune's test-app typically
+// finalizes within a couple seconds.
+const ACTIVITY_LOG_INITIAL_DELAY_MS = 750;
+const ACTIVITY_LOG_POLL_INTERVAL_MS = 1000;
+const ACTIVITY_LOG_POLL_TIMEOUT_MS = 12_000;
+
+function isTerminalActivityLog(log: ActivityLogEntry): boolean {
+  const pending = log.pendingTasks?.length ?? 0;
+  const running = log.runningTasks?.length ?? 0;
+  const errored = log.inErrorTasks?.length ?? 0;
+  // Treat any errored task as terminal — no point waiting for it to recover.
+  if (errored > 0) return true;
+  return pending === 0 && running === 0;
+}
+
+async function waitForActivityLog(
+  activityLogId: string,
+): Promise<ActivityLogEntry> {
+  await new Promise((r) => setTimeout(r, ACTIVITY_LOG_INITIAL_DELAY_MS));
+  const deadline = Date.now() + ACTIVITY_LOG_POLL_TIMEOUT_MS;
+  let last: ActivityLogEntry | undefined;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      last = await getActivityLog(activityLogId);
+      if (isTerminalActivityLog(last)) return last;
+    } catch (err) {
+      lastError = err;
+    }
+    await new Promise((r) => setTimeout(r, ACTIVITY_LOG_POLL_INTERVAL_MS));
+  }
+  if (last) return last;
+  throw lastError ?? new Error("Activity log did not become available");
+}
 
 function resolveActorDid(): string {
   return getEnv().TWIN_NODE_ADMIN_DID || PLACEHOLDER_ACTOR_DID;
@@ -127,10 +162,8 @@ async function pipeToTwin(
     const notify = await forwardActivity(activity);
     summary.notify = { status: "ok", data: notify };
 
-    await new Promise((resolve) => setTimeout(resolve, ACTIVITY_LOG_SETTLE_MS));
-
     try {
-      const log = await getActivityLog(notify.activityLogId);
+      const log = await waitForActivityLog(notify.activityLogId);
       summary.activityLog = { status: "ok", data: log };
     } catch (err) {
       summary.activityLog = { status: "error", error: errorMessage(err) };

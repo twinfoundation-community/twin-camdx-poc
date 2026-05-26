@@ -218,7 +218,7 @@ export function InboundPanel() {
             {record.twin.notify?.status === "error" && <ErrorLine text={record.twin.notify.error} />}
           </Stage>
 
-          <Stage num={4} title="Ingestion confirmed" state={stageState(record.twin.configured, record.twin.activityLog)} channel={{ kind: "live", detail: "GET /dataspace/activity-logs/:id" }} caption={activityLogCaption(record.twin)}>
+          <Stage num={4} title="Ingestion confirmed" state={activityLogStageState(record.twin.configured, record.twin.activityLog)} channel={{ kind: "live", detail: "GET /dataspace/activity-logs/:id" }} caption={activityLogCaption(record.twin)}>
             {record.twin.activityLog?.status === "ok" && <ActivityLogSummary entry={record.twin.activityLog.data} />}
             {record.twin.activityLog?.status === "error" && <ErrorLine text={record.twin.activityLog.error} />}
           </Stage>
@@ -350,6 +350,17 @@ function stageState(
 ): StageState {
   if (!configured || !result) return "skipped";
   return result.status === "ok" ? "ok" : "error";
+}
+
+function activityLogStageState(
+  configured: boolean,
+  result: StepResult<ActivityLogEntry> | undefined,
+): StageState {
+  if (!configured || !result) return "skipped";
+  if (result.status !== "ok") return "error";
+  // The fetch succeeded, but the underlying task ended in error — surface that
+  // on the stage badge instead of a misleading "OK".
+  return (result.data.inErrorTasks?.length ?? 0) > 0 ? "error" : "ok";
 }
 
 /* ─── Sub-components ────────────────────────────────────────────────────── */
