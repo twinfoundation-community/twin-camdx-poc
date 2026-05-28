@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   attestationUrnToObjectId,
   didToObjectId,
@@ -66,13 +66,108 @@ interface InboundRecord {
   note?: string;
 }
 
-type StageState = "ok" | "error" | "skipped";
+type StageState = "ok" | "error" | "skipped" | "running";
+
+// Activity log polling tuning. The inbound POST returns a fast initial snapshot;
+// the client takes over polling while the task is still in flight on the node.
+const ACTIVITY_LOG_POLL_INTERVAL_MS = 2_000;
+const ACTIVITY_LOG_POLL_MAX_ATTEMPTS = 30; // ~60s ceiling
+
+function isTerminalLogStatus(s: ActivityLogEntry["status"]): boolean {
+  return s === "completed" || s === "error";
+}
 
 export function InboundPanel() {
   const [record, setRecord] = useState<InboundRecord | null>(null);
   const [status, setStatus] = useState<"idle" | "simulating" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const resultRef = useRef<HTMLOListElement | null>(null);
+
+  // Stable identifiers for the polling effect. Depending on the activityLog
+  // object directly would re-run the effect on every poll (cancelling itself).
+  // Instead we depend on the log id + a boolean that flips when terminal is
+  // reached, so the effect naturally tears down when the task finishes.
+  const activeLog =
+    record?.twin.activityLog?.status === "ok"
+      ? record.twin.activityLog.data
+      : null;
+  const activeLogId = activeLog?.id ?? null;
+  const isNonTerminal = activeLog ? !isTerminalLogStatus(activeLog.status) : false;
+
+  const applyFreshLog = useCallback(
+    (logId: string, data: ActivityLogEntry) => {
+      setRecord((prev) => {
+        if (!prev || prev.twin.activityLog?.status !== "ok") return prev;
+        if (prev.twin.activityLog.data.id !== logId) return prev;
+        return {
+          ...prev,
+          twin: {
+            ...prev.twin,
+            activityLog: { status: "ok", data },
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const refreshActivityLog = useCallback(async () => {
+    if (!activeLogId) return;
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(
+        `/api/camdx/activity-log?id=${encodeURIComponent(activeLogId)}`,
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as ActivityLogEntry;
+      applyFreshLog(activeLogId, data);
+    } catch {
+      // soft fail — UI keeps the previous snapshot
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [activeLogId, applyFreshLog]);
+
+  useEffect(() => {
+    if (!activeLogId || !isNonTerminal) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts++;
+      try {
+        const res = await fetch(
+          `/api/camdx/activity-log?id=${encodeURIComponent(activeLogId)}`,
+          { signal: controller.signal },
+        );
+        if (res.ok) {
+          const data = (await res.json()) as ActivityLogEntry;
+          if (cancelled) return;
+          applyFreshLog(activeLogId, data);
+          if (isTerminalLogStatus(data.status)) return;
+        }
+      } catch (err) {
+        if ((err as { name?: string }).name === "AbortError") return;
+        // soft fail — retry next tick
+      }
+      if (!cancelled && attempts < ACTIVITY_LOG_POLL_MAX_ATTEMPTS) {
+        timer = setTimeout(tick, ACTIVITY_LOG_POLL_INTERVAL_MS);
+      }
+    };
+
+    timer = setTimeout(tick, ACTIVITY_LOG_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      if (timer) clearTimeout(timer);
+    };
+  }, [activeLogId, isNonTerminal, applyFreshLog]);
 
   const simulate = useCallback(async () => {
     setRecord(null);
@@ -227,7 +322,17 @@ export function InboundPanel() {
           </Stage>
 
           <Stage num={4} title="Ingestion confirmed" state={activityLogStageState(record.twin.configured, record.twin.activityLog)} channel={{ kind: "live", detail: "GET /dataspace/activity-logs/:id" }} caption={activityLogCaption(record.twin)}>
-            {record.twin.activityLog?.status === "ok" && <ActivityLogSummary entry={record.twin.activityLog.data} />}
+            {record.twin.activityLog?.status === "ok" && (
+              <>
+                <ActivityLogSummary entry={record.twin.activityLog.data} />
+                {!isTerminalLogStatus(record.twin.activityLog.data.status) && (
+                  <RefreshButton
+                    onClick={refreshActivityLog}
+                    loading={isRefreshing}
+                  />
+                )}
+              </>
+            )}
             {record.twin.activityLog?.status === "error" && <ErrorLine text={record.twin.activityLog.error} />}
           </Stage>
 
@@ -288,7 +393,13 @@ function Stage({
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <h3 className="subheading">{title}</h3>
           <span className="status-pill" data-state={state}>
-            {state === "ok" ? "Ok" : state === "error" ? "Error" : "Skipped"}
+            {state === "ok"
+              ? "Ok"
+              : state === "error"
+                ? "Error"
+                : state === "running"
+                  ? "Running"
+                  : "Skipped"}
           </span>
         </div>
         {channel && (
@@ -347,6 +458,10 @@ const stageStyles = `
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes camdx-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 @media (prefers-reduced-motion: reduce) {
   .stage { animation: none !important; opacity: 1 !important; }
 }
@@ -366,9 +481,14 @@ function activityLogStageState(
 ): StageState {
   if (!configured || !result) return "skipped";
   if (result.status !== "ok") return "error";
-  // The fetch succeeded, but the underlying activity ended in error — surface
-  // that on the stage badge instead of a misleading "OK".
-  return result.data.status === "error" ? "error" : "ok";
+  // Reflect the activity's real terminal state on the badge:
+  // - "error" → red. - "completed" → green. - anything else (pending |
+  // registering | running) → in-flight, the polling timed out before the
+  // task reached a terminal state.
+  const s = result.data.status;
+  if (s === "error") return "error";
+  if (s === "completed") return "ok";
+  return "running";
 }
 
 /* ─── Sub-components ────────────────────────────────────────────────────── */
@@ -455,6 +575,54 @@ function ErrorLine({ text }: { text: string }) {
     >
       {text}
     </div>
+  );
+}
+
+function RefreshButton({
+  onClick,
+  loading,
+}: {
+  onClick: () => void;
+  loading: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="mt-4 inline-flex items-center gap-2 text-[12px] font-mono"
+      style={{
+        color: "var(--color-slate-light)",
+        background: "transparent",
+        border: "none",
+        cursor: loading ? "default" : "pointer",
+        padding: 0,
+        opacity: loading ? 0.6 : 1,
+      }}
+      aria-label="Refresh activity log"
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={
+          loading
+            ? { animation: "camdx-spin 1s linear infinite" }
+            : undefined
+        }
+      >
+        <path d="M2.5 8a5.5 5.5 0 0 1 9.4-3.9L13.5 5.5" />
+        <path d="M13.5 2.5v3h-3" />
+        <path d="M13.5 8a5.5 5.5 0 0 1-9.4 3.9L2.5 10.5" />
+        <path d="M2.5 13.5v-3h3" />
+      </svg>
+      <span>{loading ? "Refreshing…" : "Refresh"}</span>
+    </button>
   );
 }
 

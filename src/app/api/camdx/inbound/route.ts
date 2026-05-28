@@ -62,7 +62,10 @@ const PLACEHOLDER_ACTOR_DID = "did:iota:testnet:0xCAMDX_PROVIDER_PLACEHOLDER";
 // finalizes within a couple seconds.
 const ACTIVITY_LOG_INITIAL_DELAY_MS = 750;
 const ACTIVITY_LOG_POLL_INTERVAL_MS = 1000;
-const ACTIVITY_LOG_POLL_TIMEOUT_MS = 12_000;
+// Keep the server-side poll short: we just want to return the first non-pending
+// snapshot quickly so the UI shows something fast. Client-side polling (see
+// `/api/camdx/activity-log`) takes over for tasks that need longer to settle.
+const ACTIVITY_LOG_POLL_TIMEOUT_MS = 5_000;
 
 function isTerminalActivityLog(log: ActivityLogEntry): boolean {
   // The new dataspace-models expose a single top-level status:
