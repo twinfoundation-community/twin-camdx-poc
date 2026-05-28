@@ -13,7 +13,7 @@
 
 import type { IBaseRestClientConfig } from "@twin.org/api-models";
 import { AttestationRestClient } from "@twin.org/attestation-rest-client";
-import { DataSpaceConnectorRestClient } from "@twin.org/data-space-connector-rest-client";
+import { DataspaceDataPlaneRestClient } from "@twin.org/dataspace-data-plane-rest-client";
 import { IdentityRestClient } from "@twin.org/identity-rest-client";
 import { getEnv } from "../env";
 import type { IActivity } from "../camdx/types";
@@ -126,23 +126,36 @@ export interface ForwardActivityResult {
 export async function forwardActivity(
   activity: IActivity,
 ): Promise<ForwardActivityResult> {
-  const client = new DataSpaceConnectorRestClient(
-    await authedConfig({ pathPrefix: DATASPACE_PATH_PREFIX }),
+  // /dataspace/inbox accepts unauthenticated local ingestion: when no Bearer
+  // is sent, the service skips the cross-node push checks (which require a
+  // pre-negotiated transferProcess in STARTED state) and queues the activity
+  // for the matching dataspace-app handler. The rest-client's notifyActivity
+  // mandates a trust JWT, so we bypass it and call /inbox directly.
+  const env = getEnv();
+  if (!env.TWIN_NODE_URL) throw new KitsuneNotConfiguredError();
+  const response = await fetch(
+    `${env.TWIN_NODE_URL}/${DATASPACE_PATH_PREFIX}/inbox`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(activity),
+    },
   );
-  // The rest-client returns the last segment of the Location header — the
-  // activity log URN like `urn:x-activity-log:...`.
-  const activityLogId = await client.notifyActivity(
-    activity as Parameters<DataSpaceConnectorRestClient["notifyActivity"]>[0],
-  );
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 300);
+    throw new Error(`/inbox HTTP ${response.status}: ${detail}`);
+  }
+  const location = response.headers.get("location") ?? "";
+  const activityLogId = location.split("/").pop() ?? "";
   return { activityLogId };
 }
 
 export type ActivityLogEntry = Awaited<
-  ReturnType<DataSpaceConnectorRestClient["getActivityLogEntry"]>
+  ReturnType<DataspaceDataPlaneRestClient["getActivityLogEntry"]>
 >;
 
 export async function getActivityLog(id: string): Promise<ActivityLogEntry> {
-  const client = new DataSpaceConnectorRestClient(
+  const client = new DataspaceDataPlaneRestClient(
     await authedConfig({ pathPrefix: DATASPACE_PATH_PREFIX }),
   );
   return client.getActivityLogEntry(id);

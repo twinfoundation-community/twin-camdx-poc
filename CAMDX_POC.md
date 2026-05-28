@@ -10,8 +10,8 @@ Ministry of Commerce briefing.
 | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Our adaptor speaks the X-Road REST message protocol correctly                      | Outbound call to the public X-Road Playground returns HTTP 200 with `x-road-request-hash` from the provider SS |
 | The adaptor can be addressed by a CamDX-side caller using the X-Road envelope      | Inbound handler accepts an X-Road envelope from the simulator and produces a typed W3C activity      |
-| Records arriving from CamDX can be expressed in TWIN's canonical ingestion shape   | The translated payload is a valid Activity Streams `Add` activity ready for `POST /dataspace/notify` on Kitsune |
-| The data-space-connector's `/dataspace/notify` is the right TWIN-side ingestion point | Confirmed against `data-space-connector/packages/data-space-connector-service/src/dataSpaceConnectorRoutes.ts` (route accepts any `IActivity`, `object` slot is open) and confirmed live on Kitsune by Rodrigo (`TWIN_DATASPACE_ENABLED=true`, `TWIN_DATASPACE_DATA_PLANE_PATH=dataspace/entities`) |
+| Records arriving from CamDX can be expressed in TWIN's canonical ingestion shape   | The translated payload is a valid Activity Streams `Add` activity ready for `POST /dataspace/inbox` on Kitsune |
+| The data-space-connector's `/dataspace/inbox` is the right TWIN-side ingestion point | Confirmed against `data-space-connector/packages/data-space-connector-service/src/dataSpaceConnectorRoutes.ts` (route accepts any `IActivity`, `object` slot is open) and confirmed live on Kitsune by Rodrigo (`TWIN_DATASPACE_ENABLED=true`, `TWIN_DATASPACE_DATA_PLANE_PATH=dataspace/entities`) |
 | The Consignment activity type is the canonical TWIN supply-chain payload | Confirmed against `data-space-connector/packages/data-space-connector-test-app/src/testDataSpaceConnectorApp.ts` — its `activitiesHandled()` filter is `objectType: https://vocabulary.uncefact.org/Consignment`. Same model powers TWIN's UK supply-chain pilot on `supply-chain.staging.twinnodes.com` |
 
 ## What this does NOT prove
@@ -77,7 +77,7 @@ Click **Simulate CamDX delivery** in the right panel (or, for local terminal-dri
 
 1. **Envelope received** — X-Road headers parsed (`X-Road-Client: CAMDX/GOV/MOC/CUSTOMS-EXPORT`, `X-Road-Service`, `X-Road-Id`, `X-Road-UserId`)
 2. **Translated to W3C Activity Streams** — wrapped as an `Add` activity with `objectType: https://vocabulary.uncefact.org/Consignment` (the canonical type the TWIN supply-chain pipeline already handles)
-3. **Forwarded to Kitsune `/dataspace/notify`** — `POST` returns 201 Created with an `urn:x-activity-log:...` URN in the Location header
+3. **Forwarded to Kitsune `/dataspace/inbox`** — `POST` returns 201 Created with an `urn:x-activity-log:...` URN in the Location header
 4. **Ingestion confirmed** — `GET /dataspace/activity-logs/:id` returns the ingestion record. Task counters will show non-zero values once a Data Space Connector App (e.g. `@twin.org/data-space-connector-test-app`) is registered as a Kitsune extension and subscribes to Consignment activities
 5. **Signed as W3C Verifiable Credential** — first call ensures an `assertionMethod` key (`camdx-demo`) exists on the admin DID via `POST /identity/<DID>/verification-method`, then `POST /identity/<DID>/verifiable-credential/<vmId>` issues a real VC with `DataIntegrityProof` (`eddsa-jcs-2022` cryptosuite) — returned as both a JSON-LD document and a JWT
 6. **Anchored as attestation** — `POST /attestation` returns 201 Created with an `attestation:nft:...` URN; the record is now anchored as an NFT on IOTA testnet via `@twin.org/nft-connector-iota`
@@ -111,7 +111,7 @@ Visitors drive the inbound flow with the **Simulate CamDX delivery** button — 
 
 Implemented: server-side Kitsune client (`src/lib/twin/kitsune-client.ts`) handles JWT login (`POST /authentication/login`), caches the token with expiry, refreshes on 401. The inbound handler chains four calls against Kitsune:
 
-1. `POST /dataspace/notify` — forwards the `IActivity`, captures `urn:x-activity-log:...` from the Location header
+1. `POST /dataspace/inbox` — forwards the `IActivity`, captures `urn:x-activity-log:...` from the Location header
 2. `GET /dataspace/activity-logs/:id` — reads the ingestion record after a brief settle interval
 3. `POST /identity/<DID>/verification-method` (idempotent) → `POST /identity/<DID>/verifiable-credential/<vmId>` — issues a real signed W3C VC for the citizen with `DataIntegrityProof` (`eddsa-jcs-2022`)
 4. `POST /attestation` — anchors the citizen JSON-LD payload as an on-chain NFT, captures `attestation:nft:...` from the Location header

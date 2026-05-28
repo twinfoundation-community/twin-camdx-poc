@@ -7,16 +7,24 @@ import {
   explorerObjectUrl,
 } from "@/lib/twin/explorer";
 
+interface ActivityTaskEntry {
+  taskId: string;
+  dataspaceAppId: string;
+  status: "pending" | "processing" | "success" | "failed";
+  processingGroupId?: string;
+  startDate?: string;
+  endDate?: string;
+  result?: unknown;
+  error?: { name?: string; message?: string; properties?: unknown };
+}
+
 interface ActivityLogEntry {
   id: string;
   generator?: string;
   dateCreated?: string;
   dateModified?: string;
-  status?: string;
-  pendingTasks?: unknown[];
-  runningTasks?: unknown[];
-  finalizedTasks?: unknown[];
-  inErrorTasks?: unknown[];
+  status?: "pending" | "registering" | "running" | "completed" | "error";
+  tasks?: ActivityTaskEntry[];
   [key: string]: unknown;
 }
 
@@ -167,7 +175,7 @@ export function InboundPanel() {
         <div className="mt-8">
           <span className="meta-label">Working</span>
           <p className="body-sm mt-1.5" style={{ color: "var(--color-slate-light)" }}>
-            Notify → activity log → credential → attestation. ~5s.
+            Inbox → activity log → credential → attestation. ~5s.
           </p>
         </div>
       )}
@@ -211,7 +219,7 @@ export function InboundPanel() {
             <ScrollExhibit label="Activity payload" text={JSON.stringify(record.activity, null, 2)} maxHeight={220} />
           </Stage>
 
-          <Stage num={3} title="Forwarded to TWIN's data layer" state={stageState(record.twin.configured, record.twin.notify)} channel={{ kind: "live", detail: "POST /dataspace/notify" }} caption={notifyCaption(record.twin)}>
+          <Stage num={3} title="Forwarded to TWIN's data layer" state={stageState(record.twin.configured, record.twin.notify)} channel={{ kind: "live", detail: "POST /dataspace/inbox" }} caption={notifyCaption(record.twin)}>
             {record.twin.notify?.status === "ok" && (
               <KVStack rows={[["Activity log URN", record.twin.notify.data.activityLogId]]} />
             )}
@@ -358,9 +366,9 @@ function activityLogStageState(
 ): StageState {
   if (!configured || !result) return "skipped";
   if (result.status !== "ok") return "error";
-  // The fetch succeeded, but the underlying task ended in error — surface that
-  // on the stage badge instead of a misleading "OK".
-  return (result.data.inErrorTasks?.length ?? 0) > 0 ? "error" : "ok";
+  // The fetch succeeded, but the underlying activity ended in error — surface
+  // that on the stage badge instead of a misleading "OK".
+  return result.data.status === "error" ? "error" : "ok";
 }
 
 /* ─── Sub-components ────────────────────────────────────────────────────── */
@@ -451,11 +459,14 @@ function ErrorLine({ text }: { text: string }) {
 }
 
 function ActivityLogSummary({ entry }: { entry: ActivityLogEntry }) {
+  const tasks = entry.tasks ?? [];
+  const tally = (s: ActivityTaskEntry["status"]) =>
+    tasks.filter((t) => t.status === s).length;
   const counts: [string, number][] = [
-    ["pending", entry.pendingTasks?.length ?? 0],
-    ["running", entry.runningTasks?.length ?? 0],
-    ["finalized", entry.finalizedTasks?.length ?? 0],
-    ["errors", entry.inErrorTasks?.length ?? 0],
+    ["pending", tally("pending")],
+    ["processing", tally("processing")],
+    ["success", tally("success")],
+    ["failed", tally("failed")],
   ];
   return (
     <div className="space-y-4">
@@ -765,11 +776,7 @@ function activityLogCaption(twin: TwinForwardSummary): string {
   const al = twin.activityLog;
   if (!al) return "Not attempted.";
   if (al.status === "ok") {
-    const total =
-      (al.data.pendingTasks?.length ?? 0) +
-      (al.data.runningTasks?.length ?? 0) +
-      (al.data.finalizedTasks?.length ?? 0) +
-      (al.data.inErrorTasks?.length ?? 0);
+    const total = al.data.tasks?.length ?? 0;
     if (total === 0) return "Activity persisted; no subscribers on this generic endpoint.";
     return `Activity dispatched to ${total} task${total === 1 ? "" : "s"}.`;
   }

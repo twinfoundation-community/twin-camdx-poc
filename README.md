@@ -8,7 +8,7 @@ ahead of a ministerial briefing.
   X-Road Playground. Proves wire compatibility with the protocol CamDX uses.
 - **Inbound** (CamDX → TWIN): mock CamDX simulator posts an X-Road REST envelope
   to our handler, which translates it into a W3C Activity Streams `Add` activity
-  ready to forward to a hosted Kitsune TWIN node's `POST /dataspace/notify`.
+  ready to forward to a hosted Kitsune TWIN node's `POST /dataspace/inbox`.
 
 The audience-facing demo lives at `/camdx-demo`.
 

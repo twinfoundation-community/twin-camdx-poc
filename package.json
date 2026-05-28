@@ -17,7 +17,7 @@
   "dependencies": {
     "@twin.org/api-models": "^0.0.3-next.34",
     "@twin.org/attestation-rest-client": "^0.0.3-next.10",
-    "@twin.org/data-space-connector-rest-client": "^0.0.3-next.14",
+    "@twin.org/dataspace-data-plane-rest-client": "^0.0.3-next.31",
     "@twin.org/identity-rest-client": "^0.0.3-next.25",
     "next": "16.0.10",
     "react": "^19.2.0",

@@ -65,12 +65,9 @@ const ACTIVITY_LOG_POLL_INTERVAL_MS = 1000;
 const ACTIVITY_LOG_POLL_TIMEOUT_MS = 12_000;
 
 function isTerminalActivityLog(log: ActivityLogEntry): boolean {
-  const pending = log.pendingTasks?.length ?? 0;
-  const running = log.runningTasks?.length ?? 0;
-  const errored = log.inErrorTasks?.length ?? 0;
-  // Treat any errored task as terminal — no point waiting for it to recover.
-  if (errored > 0) return true;
-  return pending === 0 && running === 0;
+  // The new dataspace-models expose a single top-level status:
+  // pending | registering | running | completed | error
+  return log.status === "completed" || log.status === "error";
 }
 
 async function waitForActivityLog(
@@ -157,7 +154,8 @@ async function pipeToTwin(
 
   const summary: TwinForwardSummary = { configured: true };
 
-  // Stages 3 + 4: forward activity, then read its log
+  // Stages 3 + 4: forward activity to /inbox (unauthenticated local push),
+  // then poll the activity log until it reaches a terminal state.
   try {
     const notify = await forwardActivity(activity);
     summary.notify = { status: "ok", data: notify };
@@ -172,9 +170,9 @@ async function pipeToTwin(
     summary.notify = { status: "error", error: errorMessage(err) };
   }
 
-  // Stage 5: issue a signed W3C VC for the citizen record, using an
-  // assertion-method key on the admin DID. The verification method is created
-  // on-demand if it doesn't exist yet (idempotent).
+  // Stage 5: issue a signed W3C VC for the consignment, using an assertion-
+  // method key on the admin DID. The VM is created on-demand if missing
+  // (idempotent).
   if (issuerDid) {
     try {
       const vm = await ensureVerificationMethod(issuerDid, vmLocalId);

@@ -15,7 +15,7 @@ export interface TranslateInput {
 
 /**
  * Wrap a CamDX-delivered JSON-LD payload as a W3C Activity Streams `Add`
- * activity, ready for POST to a TWIN node's `/dataspace/notify` route.
+ * activity, ready for POST to a TWIN node's `/dataspace/inbox` route.
  *
  * Pure function — no I/O, no side effects. Unit-testable in isolation.
  */
